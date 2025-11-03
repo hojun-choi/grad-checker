@@ -1,0 +1,5 @@
+/* 전체 문서가 뷰포트 높이를 정확히 채우도록 */
+html, body, #app {
+  height: 100%;
+}
+* { box-sizing: border-box; }

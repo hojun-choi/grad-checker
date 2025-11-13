@@ -1,9 +1,12 @@
 <template>
     <footer class="foot">
         <div class="links">
-            <a href="https://library.ssu.ac.kr" target="_blank" rel="noreferrer">학교 도서관</a>
             <a href="https://ssu.ac.kr" target="_blank" rel="noreferrer">학교 홈페이지</a>
             <a href="https://saint.ssu.ac.kr" target="_blank" rel="noreferrer">유세인트</a>
+            <a href="https://ssu.factchat.bot/auth" target="_blank" rel="noreferrer">팩트챗(숭실대 LLM)</a>
+            <a href="https://canvas.ssu.ac.kr/" target="_blank" rel="noreferrer">숭실대 LMS</a>
+            <a href="https://library.ssu.ac.kr" target="_blank" rel="noreferrer">학교 도서관</a>
+            <a href="https://path.ssu.ac.kr/" target="_blank" rel="noreferrer">슈패스(SSU-PATH)</a>
         </div>
         <small>© {{ new Date().getFullYear() }} Graduation Checker</small>
     </footer>

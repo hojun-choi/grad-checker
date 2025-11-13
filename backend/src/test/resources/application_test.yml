@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    # H2 인메모리 DB를 사용하여 외부 DB 연결 오류를 제거
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  flyway:
+    # 🚨 Flyway 비활성화! (SQL Syntax 오류 원천 차단)
+    enabled: false
+
+  jpa:
+    show-sql: true
+    hibernate:
+      # 🚨 JPA에게 엔티티 기반으로 테이블 자동 생성을 맡김 (H2 문법에 맞게 생성됨)
+      ddl-auto: create-drop

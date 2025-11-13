@@ -18,6 +18,12 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
+    //Spring Security
+    implementation("org.springframework.boot:spring-boot-starter-security")
+
+    testImplementation("com.h2database:h2")
+    testImplementation ("org.springframework.security:spring-security-test")
+
     // Flyway + MySQL (9.x는 mysql 모듈 별도 필요)
     implementation("org.flywaydb:flyway-core:9.22.3")
     implementation("org.flywaydb:flyway-mysql:9.22.3")

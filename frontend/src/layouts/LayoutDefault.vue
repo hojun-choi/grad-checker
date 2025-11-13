@@ -24,9 +24,11 @@ import AppFooter from '../components/AppFooter.vue'
 /* 본문만 남은 공간 전부 차지 */
 .content {
   flex: 1 0 auto;
-  max-width: 1080px;
-  margin: 24px auto;
-  padding: 0 16px;
+  width: 100%;        /* 전체 폭 사용 */
+  max-width: none;    /* 1080px 제한 제거 */
+  margin: 24px 0 32px; /* 위/아래만 여백 */
+  padding: 0 32px;    /* 좌우 여백만 살짝 */
+  box-sizing: border-box;
 }
 
 /* (선택) 헤더/푸터가 절대 커지지 않도록 명시 */

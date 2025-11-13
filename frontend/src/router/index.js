@@ -11,10 +11,14 @@
 // })
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../pages/Home.vue'
+import Board from '../pages/Board/index.vue'
+import BoardWrite from '../pages/Board/Write.vue'
 
 const routes = [
     { path: '/', name: 'home', component: Home },
     { path: '/:pathMatch(.*)*', redirect: '/' },
+    { path: '/board', name: 'board', component: Board },
+    { path: '/board/write', name: 'boardWrite', component: BoardWrite },
 ]
 
 const router = createRouter({

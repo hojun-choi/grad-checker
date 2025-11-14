@@ -1,2 +1,3 @@
 type NUL > .gitignore
 notepad .gitignore
+__pycache__/

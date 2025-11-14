@@ -6,7 +6,8 @@
       <div>
         <h1>게시판</h1>
         <p class="board__subtitle">
-          졸업 요건, 시간표, 전과/복수전공, 수업 정보 등을 자유롭게 나누는 공간입니다.
+          졸업 요건, 시간표, 전과/복수전공 등 정보를 서로 공유하는 공간입니다.<br>
+          열람은 누구나, 글쓰기/댓글은 로그인 후 이용 가능합니다.
         </p>
       </div>
 
@@ -77,7 +78,7 @@
             </td>
             <td class="title-cell">
               <RouterLink
-                :to="`/board/${post.id}`"
+                :to="`/board/posts/${post.id}`"
                 class="title-link"
               >
                 {{ post.title }}

@@ -17,7 +17,7 @@
 
 <style scoped>
 .foot{margin-top:32px;padding:16px;border-top:1px solid #eee;color:#666}
-.links{display:flex;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.links{display:flex;gap:20px;margin-bottom:6px;flex-wrap:wrap}
 .links a{color:#444;text-decoration:none}
 .links a:hover{text-decoration:underline}
 </style>

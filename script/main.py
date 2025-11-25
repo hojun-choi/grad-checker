@@ -3,7 +3,24 @@ from utility import *
 
 # --- [ 크롤러 모듈 임포트 ] ---
 try:
-    
+    #인문대학
+    from humanities import christian_studies
+    from humanities import korean_language
+    from humanities import chinese_language
+    from humanities import japanese_language
+    from humanities import english_language
+    from humanities import german_language
+    from humanities import french_language
+    from humanities import philosophy
+    from humanities import sports
+    from humanities import history
+    from humanities import film_arts
+    #자연과학대학
+    from natural_science import mathematics
+    from natural_science import physics
+    from natural_science import chemistry
+    from natural_science import statistics
+    from natural_science import biomedical_science
     #법과대학
     from law import globallaw
     from law import law
@@ -75,233 +92,329 @@ def main():
         "": {
              "links_func": .get_post_links,
              "content_func": .get_post_contents,
-             "save_sub_path": ".csv"
-        }
+             "save_sub_path": "humanities/.csv"
+        },
         """
     CRAWLER_CONFIG = {
+        #기독교학과
+        "christian_studies": {
+             "links_func": christian_studies.get_post_links,
+             "content_func": christian_studies.get_post_contents,
+             "save_sub_path": "humanities/christian_studies.csv"
+        },
+        #국문학과
+        "korean_language": {
+             "links_func": korean_language.get_post_links,
+             "content_func": korean_language.get_post_contents,
+             "save_sub_path": "humanities/korean_language.csv"
+        },
+        #중문학과
+        "chinese_language": {
+             "links_func": chinese_language.get_post_links,
+             "content_func": chinese_language.get_post_contents,
+             "save_sub_path": "humanities/chinese_language.csv"
+        },
+        #영문학과
+        "english_language": {
+             "links_func": english_language.get_post_links,
+             "content_func": english_language.get_post_contents,
+             "save_sub_path": "humanities/english_language.csv"
+        },
+        #영화
+        "film_arts": {
+             "links_func": film_arts.get_post_links,
+             "content_func": film_arts.get_post_contents,
+             "save_sub_path": "humanities/film_arts.csv"
+        },
+        #불문학과
+        "french_language": {
+             "links_func": french_language.get_post_links,
+             "content_func": french_language.get_post_contents,
+             "save_sub_path": "humanities/french_language.csv"
+        },
+        #독문학과
+        "german_language": {
+             "links_func": german_language.get_post_links,
+             "content_func": german_language.get_post_contents,
+             "save_sub_path": "humanities/german_language.csv"
+        },
+        #사학과
+        "history": {
+             "links_func": history.get_post_links,
+             "content_func": history.get_post_contents,
+             "save_sub_path": "humanities/history.csv"
+        },
+        #일어일문학과
+        "japanese_language": {
+             "links_func": japanese_language.get_post_links,
+             "content_func": japanese_language.get_post_contents,
+             "save_sub_path": "humanities/japanese_language.csv"
+        },
+        #철학과
+        "philosophy": {
+             "links_func": philosophy.get_post_links,
+             "content_func": philosophy.get_post_contents,
+             "save_sub_path": "humanities/philosophy.csv"
+        },
+        #체육학과
+        "sports": {
+             "links_func": sports.get_post_links,
+             "content_func": sports.get_post_contents,
+             "save_sub_path": "humanities/sports.csv"
+        },
+    #     #수학과
+    #     "mathematics": {
+    #          "links_func": mathematics.get_post_links,
+    #          "content_func": mathematics.get_post_contents,
+    #          "save_sub_path": "natural_science/mathematics.csv"
+    #     },
+    #     #물리학과
+    #     "physics": {
+    #          "links_func": physics.get_post_links,
+    #          "content_func": physics.get_post_contents,
+    #          "save_sub_path": "natural_science/physics.csv"
+    #     },
+    #     #화학과
+    #     "chemistry": {
+    #          "links_func": chemistry.get_post_links,
+    #          "content_func": chemistry.get_post_contents,
+    #          "save_sub_path": "natural_science/chemistry.csv"
+    #     },
+    #     #통계학과
+    #     "statistics": {
+    #          "links_func": statistics.get_post_links,
+    #          "content_func": statistics.get_post_contents,
+    #          "save_sub_path": "natural_science/statistics.csv"
+    #     },
+    #  #생명과학과
+    #     "biomedical_science": {
+    #          "links_func": biomedical_science.get_post_links,
+    #          "content_func": biomedical_science.get_post_contents,
+    #          "save_sub_path": "natural_science/biomedical_science.csv"
+    #     },
         # #소프트웨어학부
-        "software": {
-            "links_func": software.get_post_links,
-            "content_func": software.get_post_contents,
-            "save_sub_path": "it/software.csv"
-        },
-        #국제법무학과
-        "globallaw": {
-             "links_func": globallaw.get_post_links,
-             "content_func": globallaw.get_post_contents,
-             "save_sub_path": "law/globallaw.csv"
-        },
-        #법학과
-        "law": {
-             "links_func": law.get_post_links,
-             "content_func": law.get_post_contents,
-             "save_sub_path": "law/law.csv"
-        },
-        #사회복지학부
-        "socialwelfare": {
-             "links_func": socialwelfare.get_post_links,
-             "content_func": socialwelfare.get_post_contents,
-             "save_sub_path": "social_science/socialwelfare.csv"
-        },
-        #행정학부
-        "publicadministration": {
-             "links_func": publicadministration.get_post_links,
-             "content_func": publicadministration.get_post_contents,
-             "save_sub_path": "social_science/publicadministration.csv"
-        },
+     #    "software": {
+     #        "links_func": software.get_post_links,
+     #        "content_func": software.get_post_contents,
+     #        "save_sub_path": "it/software.csv"
+     #    },
+     #    #국제법무학과
+     #    "globallaw": {
+     #         "links_func": globallaw.get_post_links,
+     #         "content_func": globallaw.get_post_contents,
+     #         "save_sub_path": "law/globallaw.csv"
+     #    },
+     #    #법학과
+     #    "law": {
+     #         "links_func": law.get_post_links,
+     #         "content_func": law.get_post_contents,
+     #         "save_sub_path": "law/law.csv"
+     #    },
+     #    #사회복지학부
+     #    "socialwelfare": {
+     #         "links_func": socialwelfare.get_post_links,
+     #         "content_func": socialwelfare.get_post_contents,
+     #         "save_sub_path": "social_science/socialwelfare.csv"
+     #    },
+     #    #행정학부
+     #    "publicadministration": {
+     #         "links_func": publicadministration.get_post_links,
+     #         "content_func": publicadministration.get_post_contents,
+     #         "save_sub_path": "social_science/publicadministration.csv"
+     #    },
         
-        #정치외교학과
-        "politicalscience_internationalrelations": {
-             "links_func": politicalscience_internationalrelations.get_post_links,
-             "content_func": politicalscience_internationalrelations.get_post_contents,
-             "save_sub_path": "social_science/politicalscience_internationalrelations.csv"
-        },
-        #정보사회학과
-        "informationsociology": {
-             "links_func": informationsociology.get_post_links,
-             "content_func": informationsociology.get_post_contents,
-             "save_sub_path": "social_science/informationsociology.csv"
-        },
-        #언론홍보학과
-        "journalism_publicrelation_advertising": {
-             "links_func": journalism_publicrelation_advertising.get_post_links,
-             "content_func": journalism_publicrelation_advertising.get_post_contents,
-             "save_sub_path": "social_science/journalism_publicrelation_advertising.csv"
-        },
-        #평생교육학과
-        "lifelong_edu": {
-             "links_func": lifelong_edu.get_post_links,
-             "content_func": lifelong_edu.get_post_contents,
-             "save_sub_path": "social_science/lifelong_edu.csv"
-        },
-        #경제학과
-        "economics": {
-             "links_func": economics.get_post_links,
-             "content_func": economics.get_post_contents,
-             "save_sub_path": "economy/economics.csv"
-        },
-        #글로벌통상학과
-        "global_commerce": {
-             "links_func": global_commerce.get_post_links,
-             "content_func": global_commerce.get_post_contents,
-             "save_sub_path": "economy/global_commerce.csv"
-        },
-        #금융경제학과
-        "ecofinance": {
-             "links_func": ecofinance.get_post_links,
-             "content_func": ecofinance.get_post_contents,
-             "save_sub_path": "economy/ecofinance.csv"
-        },
-        #국제무역학과
-        "internationaltrade_transaction": {
-             "links_func": internationaltrade_transaction.get_post_links,
-             "content_func": internationaltrade_transaction.get_post_contents,
-             "save_sub_path": "economy/internationaltrade_transaction.csv"
-        },
+     #    #정치외교학과
+     #    "politicalscience_internationalrelations": {
+     #         "links_func": politicalscience_internationalrelations.get_post_links,
+     #         "content_func": politicalscience_internationalrelations.get_post_contents,
+     #         "save_sub_path": "social_science/politicalscience_internationalrelations.csv"
+     #    },
+     #    #정보사회학과
+     #    "informationsociology": {
+     #         "links_func": informationsociology.get_post_links,
+     #         "content_func": informationsociology.get_post_contents,
+     #         "save_sub_path": "social_science/informationsociology.csv"
+     #    },
+     #    #언론홍보학과
+     #    "journalism_publicrelation_advertising": {
+     #         "links_func": journalism_publicrelation_advertising.get_post_links,
+     #         "content_func": journalism_publicrelation_advertising.get_post_contents,
+     #         "save_sub_path": "social_science/journalism_publicrelation_advertising.csv"
+     #    },
+     #    #평생교육학과
+     #    "lifelong_edu": {
+     #         "links_func": lifelong_edu.get_post_links,
+     #         "content_func": lifelong_edu.get_post_contents,
+     #         "save_sub_path": "social_science/lifelong_edu.csv"
+     #    },
+     #    #경제학과
+     #    "economics": {
+     #         "links_func": economics.get_post_links,
+     #         "content_func": economics.get_post_contents,
+     #         "save_sub_path": "economy/economics.csv"
+     #    },
+     #    #글로벌통상학과
+     #    "global_commerce": {
+     #         "links_func": global_commerce.get_post_links,
+     #         "content_func": global_commerce.get_post_contents,
+     #         "save_sub_path": "economy/global_commerce.csv"
+     #    },
+     #    #금융경제학과
+     #    "ecofinance": {
+     #         "links_func": ecofinance.get_post_links,
+     #         "content_func": ecofinance.get_post_contents,
+     #         "save_sub_path": "economy/ecofinance.csv"
+     #    },
+     #    #국제무역학과
+     #    "internationaltrade_transaction": {
+     #         "links_func": internationaltrade_transaction.get_post_links,
+     #         "content_func": internationaltrade_transaction.get_post_contents,
+     #         "save_sub_path": "economy/internationaltrade_transaction.csv"
+     #    },
 
-        #경영학부
-        "business_administration": {
-             "links_func": business_administration.get_post_links,
-             "content_func": business_administration.get_post_contents,
-             "save_sub_path": "business/business_administration.csv"
-        },
-        #벤처중소기업학과
-        "venture_smallbusiness": {
-             "links_func": venture_smallbusiness.get_post_links,
-             "content_func": venture_smallbusiness.get_post_contents,
-             "save_sub_path": "business/venture_smallbusiness.csv"
-        },
-        #회계학부
-        "accounting": {
-             "links_func": accounting.get_post_links,
-             "content_func": accounting.get_post_contents,
-             "save_sub_path": "business/accounting.csv"
-        },
-        #금융학부
-        "finance": {
-             "links_func": finance.get_post_links,
-             "content_func": finance.get_post_contents,
-             "save_sub_path": "business/finance.csv"
-        },
-        #벤처경영학과
-        "venture_management": {
-             "links_func": venture_management.get_post_links,
-             "content_func": venture_management.get_post_contents,
-             "save_sub_path": "business/venture_management.csv"
-        },
-        #혁신경영학과
-        "innovation_management": {
-             "links_func": innovation_management.get_post_links,
-             "content_func": innovation_management.get_post_contents,
-             "save_sub_path": "business/innovation_management.csv"
-        },
-        #복지경영학과
-        "welfare_management": {
-             "links_func": welfare_management.get_post_links,
-             "content_func": welfare_management.get_post_contents,
-             "save_sub_path": "business/welfare_management.csv"
-        },
-        #회계세무학과
-        "accounting_tex": {
-             "links_func": accounting_tex.get_post_links,
-             "content_func": accounting_tex.get_post_contents,
-             "save_sub_path": "business/accounting_tex.csv"
-        },
+     #    #경영학부
+     #    "business_administration": {
+     #         "links_func": business_administration.get_post_links,
+     #         "content_func": business_administration.get_post_contents,
+     #         "save_sub_path": "business/business_administration.csv"
+     #    },
+     #    #벤처중소기업학과
+     #    "venture_smallbusiness": {
+     #         "links_func": venture_smallbusiness.get_post_links,
+     #         "content_func": venture_smallbusiness.get_post_contents,
+     #         "save_sub_path": "business/venture_smallbusiness.csv"
+     #    },
+     #    #회계학부
+     #    "accounting": {
+     #         "links_func": accounting.get_post_links,
+     #         "content_func": accounting.get_post_contents,
+     #         "save_sub_path": "business/accounting.csv"
+     #    },
+     #    #금융학부
+     #    "finance": {
+     #         "links_func": finance.get_post_links,
+     #         "content_func": finance.get_post_contents,
+     #         "save_sub_path": "business/finance.csv"
+     #    },
+     #    #벤처경영학과
+     #    "venture_management": {
+     #         "links_func": venture_management.get_post_links,
+     #         "content_func": venture_management.get_post_contents,
+     #         "save_sub_path": "business/venture_management.csv"
+     #    },
+     #    #혁신경영학과
+     #    "innovation_management": {
+     #         "links_func": innovation_management.get_post_links,
+     #         "content_func": innovation_management.get_post_contents,
+     #         "save_sub_path": "business/innovation_management.csv"
+     #    },
+     #    #복지경영학과
+     #    "welfare_management": {
+     #         "links_func": welfare_management.get_post_links,
+     #         "content_func": welfare_management.get_post_contents,
+     #         "save_sub_path": "business/welfare_management.csv"
+     #    },
+     #    #회계세무학과
+     #    "accounting_tex": {
+     #         "links_func": accounting_tex.get_post_links,
+     #         "content_func": accounting_tex.get_post_contents,
+     #         "save_sub_path": "business/accounting_tex.csv"
+     #    },
 
-        #화학공학과
-        "chemical": {
-             "links_func": chemical.get_post_links,
-             "content_func": chemical.get_post_contents,
-             "save_sub_path": "engineering/chemical.csv"
-        },
-        #산업.시스템공학과
-        "industrial": {
-             "links_func": industrial.get_post_links,
-             "content_func": industrial.get_post_contents,
-             "save_sub_path": "engineering/industrial.csv"
-        },
-        #전기공학부
-        "electrical": {
-             "links_func": electrical.get_post_links,
-             "content_func": electrical.get_post_contents,
-             "save_sub_path": "engineering/electrical.csv"
-        },
-        #기계공학부
-        "mechanical": {
-             "links_func": mechanical.get_post_links,
-             "content_func": mechanical.get_post_contents,
-             "save_sub_path": "engineering/mechanical.csv"
-        },
-        #건축학부
-        "architecture": {
-             "links_func": architecture.get_post_links,
-             "content_func": architecture.get_post_contents,
-             "save_sub_path": "engineering/architecture.csv"
-        },
-        #신소재공학과
-        "material": {
-             "links_func": material.get_post_links,
-             "content_func": material.get_post_contents,
-             "save_sub_path": "engineering/material.csv"
-        },
-        #컴퓨터학부
-        "computer": {
-             "links_func": computer.get_post_links,
-             "content_func": computer.get_post_contents,
-             "save_sub_path": "it/computer.csv"
-        },
-        #전자정보공학부(전자)
-        #전자정보공학부(it융합) - 전자공학부(전자)와 같은 게시판 
-        "electronic_engineering": {
-             "links_func": electronic_engineering.get_post_links,
-             "content_func": electronic_engineering.get_post_contents,
-             "save_sub_path": "it/electronic_engineering.csv"
-        },
-        #글로벌미디어학부
-        "global_media": {
-             "links_func": global_media.get_post_links,
-             "content_func": global_media.get_post_contents,
-             "save_sub_path": "it/global_media.csv"
-        },
-        #미디어경영학과 글로벌 미디어학부와 동일한 게시판 사용
-        #ai융합학부
-        "ai_convergence": {
-             "links_func": ai_convergence.get_post_links,
-             "content_func": ai_convergence.get_post_contents,
-             "save_sub_path": "it/ai_convergence.csv"
-        },
+     #    #화학공학과
+     #    "chemical": {
+     #         "links_func": chemical.get_post_links,
+     #         "content_func": chemical.get_post_contents,
+     #         "save_sub_path": "engineering/chemical.csv"
+     #    },
+     #    #산업.시스템공학과
+     #    "industrial": {
+     #         "links_func": industrial.get_post_links,
+     #         "content_func": industrial.get_post_contents,
+     #         "save_sub_path": "engineering/industrial.csv"
+     #    },
+     #    #전기공학부
+     #    "electrical": {
+     #         "links_func": electrical.get_post_links,
+     #         "content_func": electrical.get_post_contents,
+     #         "save_sub_path": "engineering/electrical.csv"
+     #    },
+     #    #기계공학부
+     #    "mechanical": {
+     #         "links_func": mechanical.get_post_links,
+     #         "content_func": mechanical.get_post_contents,
+     #         "save_sub_path": "engineering/mechanical.csv"
+     #    },
+     #    #건축학부
+     #    "architecture": {
+     #         "links_func": architecture.get_post_links,
+     #         "content_func": architecture.get_post_contents,
+     #         "save_sub_path": "engineering/architecture.csv"
+     #    },
+     #    #신소재공학과
+     #    "material": {
+     #         "links_func": material.get_post_links,
+     #         "content_func": material.get_post_contents,
+     #         "save_sub_path": "engineering/material.csv"
+     #    },
+     #    #컴퓨터학부
+     #    "computer": {
+     #         "links_func": computer.get_post_links,
+     #         "content_func": computer.get_post_contents,
+     #         "save_sub_path": "it/computer.csv"
+     #    },
+     #    #전자정보공학부(전자)
+     #    #전자정보공학부(it융합) - 전자공학부(전자)와 같은 게시판 
+     #    "electronic_engineering": {
+     #         "links_func": electronic_engineering.get_post_links,
+     #         "content_func": electronic_engineering.get_post_contents,
+     #         "save_sub_path": "it/electronic_engineering.csv"
+     #    },
+     #    #글로벌미디어학부
+     #    "global_media": {
+     #         "links_func": global_media.get_post_links,
+     #         "content_func": global_media.get_post_contents,
+     #         "save_sub_path": "it/global_media.csv"
+     #    },
+     #    #미디어경영학과 글로벌 미디어학부와 동일한 게시판 사용
+     #    #ai융합학부
+     #    "ai_convergence": {
+     #         "links_func": ai_convergence.get_post_links,
+     #         "content_func": ai_convergence.get_post_contents,
+     #         "save_sub_path": "it/ai_convergence.csv"
+     #    },
         
-        #정보보호학과
-        "infosec": {
-             "links_func": infosec.get_post_links,
-             "content_func": infosec.get_post_contents,
-             "save_sub_path": "it/infosec.csv"
-        },
+     #    #정보보호학과
+     #    "infosec": {
+     #         "links_func": infosec.get_post_links,
+     #         "content_func": infosec.get_post_contents,
+     #         "save_sub_path": "it/infosec.csv"
+     #    },
 
-        #차세대반도체공학과
-        "next_gen_semiconductor": {
-             "links_func": next_gen_semiconductor.get_post_links,
-             "content_func": next_gen_semiconductor.get_post_contents,
-             "save_sub_path": "next_gen_semiconductor/next_gen_semiconductor.csv"
-        },
-        #자유전공학부
-        "liberal_study": {
-             "links_func": liberal_study.get_post_links,
-             "content_func": liberal_study.get_post_contents,
-             "save_sub_path": "liberal_study/liberal_study.csv"
-        },
-        #베어드학부대학
-        "baird": {
-             "links_func": baird.get_post_links,
-             "content_func": baird.get_post_contents,
-             "save_sub_path": "baird/baird.csv"
-        },
-        #학교학사공지
-        "ssu": {
-             "links_func": ssu.get_post_links,
-             "content_func": ssu.get_post_contents,
-             "save_sub_path": "ssu/ssu.csv"
-        },
+     #    #차세대반도체공학과
+     #    "next_gen_semiconductor": {
+     #         "links_func": next_gen_semiconductor.get_post_links,
+     #         "content_func": next_gen_semiconductor.get_post_contents,
+     #         "save_sub_path": "next_gen_semiconductor/next_gen_semiconductor.csv"
+     #    },
+     #    #자유전공학부
+     #    "liberal_study": {
+     #         "links_func": liberal_study.get_post_links,
+     #         "content_func": liberal_study.get_post_contents,
+     #         "save_sub_path": "liberal_study/liberal_study.csv"
+     #    },
+     #    #베어드학부대학
+     #    "baird": {
+     #         "links_func": baird.get_post_links,
+     #         "content_func": baird.get_post_contents,
+     #         "save_sub_path": "baird/baird.csv"
+     #    },
+     #    #학교학사공지
+     #    "ssu": {
+     #         "links_func": ssu.get_post_links,
+     #         "content_func": ssu.get_post_contents,
+     #         "save_sub_path": "ssu/ssu.csv"
+     #    },
 
     }
     

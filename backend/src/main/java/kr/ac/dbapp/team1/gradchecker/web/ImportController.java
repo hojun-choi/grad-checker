@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 @RestController
-@RequestMapping("/api/import")
+@RequestMapping("/import")
 public class ImportController {
 
   private final StudentRepository studentRepo;

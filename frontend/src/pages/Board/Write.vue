@@ -88,6 +88,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../../composables/useAuth.js'
+import { api } from '../../api/api.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -140,7 +141,7 @@ onMounted(() => {
   }
 })
 
-function handleSubmit() {
+async function handleSubmit() {
   if (!form.value.category) {
     alert('게시판명을 선택해주세요.')
     return
@@ -161,18 +162,22 @@ function handleSubmit() {
     anonymous: isAnonymous.value, // 백엔드에서 true면 '익명'으로 처리
   }
 
-  if (isEditMode.value) {
-    const id = route.params.id
-    // TODO: PUT /api/board/{id}
-    console.log('EDIT POST', id, payload)
-    alert('수정된 걸로 가정하고 목록으로 이동합니다.')
-  } else {
-    // TODO: POST /api/board
-    console.log('CREATE POST', payload)
-    alert('등록된 걸로 가정하고 목록으로 이동합니다.')
+  try {
+    if (isEditMode.value) {
+      const id = route.params.id
+      // TODO: PUT /api/board/{id}
+      console.log('EDIT POST', id, payload)
+      alert('수정된 걸로 가정하고 목록으로 이동합니다.')
+    } else {
+      // POST /api/board/posts
+      await api.post('/board/posts', payload)
+      alert('게시글이 등록되었습니다.')
+    }
+    router.push('/board')
+  } catch (error) {
+    console.error('글 저장 실패:', error)
+    alert('글 저장 중 오류가 발생했습니다.')
   }
-
-  router.push('/board')
 }
 
 function handleCancel() {

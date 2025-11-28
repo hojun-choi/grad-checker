@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -21,8 +22,13 @@ public class Post {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "board_type_id", nullable = false)
-    private Long boardTypeId;
+    /**
+     * 게시판 종류 (공지, 졸업, 전과 등)를 나타내는 BoardType 엔티티와의 연관관계.
+     * 실제 컬럼은 board_type_id 로 저장된다.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "board_type_id", nullable = false)
+    private BoardType boardType;
 
     @Column(name = "title", nullable = false, length = 200)
     private String title;
@@ -46,43 +52,56 @@ public class Post {
     private boolean isDeleted = false;
 
     @Builder
-    public Post(Long userId, Long boardTypeId, String title, String content) {
+    public Post(Long userId, BoardType boardType, String title, String content) {
         this.userId = userId;
-        this.boardTypeId = boardTypeId;
+        this.boardType = boardType;
         this.title = title;
         this.content = content;
         this.createdAt = LocalDateTime.now();
     }
-    //게시글 수정
-    public void update(String title, String content, Long boardTypeId) {
+
+    // 게시글 수정
+    public void update(String title, String content, BoardType boardType) {
         this.title = title;
         this.content = content;
-        this.boardTypeId = boardTypeId;
+        this.boardType = boardType;
         this.updatedAt = LocalDateTime.now();
     }
-    //조회수 증가
+
+    // 조회수 증가
     public void incrementViewCount() {
         this.viewCount += 1;
     }
 
+    // 논리 삭제
     public void markAsDeleted() {
         this.isDeleted = true;
         this.updatedAt = LocalDateTime.now();
     }
 
-    //댓글 수 증가
+    // 댓글 수 증가
     public void incrementCommentCount() {
         this.commentCount++;
         this.updatedAt = LocalDateTime.now();
     }
-    //댓글 수 감소
+
+    // 댓글 수 감소
     public void decrementCommentCount() {
         if (this.commentCount > 0) {
             this.commentCount--;
         }
         this.updatedAt = LocalDateTime.now();
     }
+
     public boolean isDeleted() {
         return this.isDeleted;
+    }
+
+    /**
+     * 이전 코드에서 사용하던 boardTypeId 를 위해 헬퍼 메서드를 제공한다.
+     * (DTO 등에서 id 값이 필요할 때 사용)
+     */
+    public Long getBoardTypeId() {
+        return boardType != null ? boardType.getId() : null;
     }
 }

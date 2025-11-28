@@ -1,9 +1,11 @@
 package kr.ac.dbapp.team1.gradchecker.service;
 
+import kr.ac.dbapp.team1.gradchecker.domain.BoardType;
 import kr.ac.dbapp.team1.gradchecker.domain.Post;
 import kr.ac.dbapp.team1.gradchecker.dto.PostRequest;
 import kr.ac.dbapp.team1.gradchecker.dto.PostResponse;
 import kr.ac.dbapp.team1.gradchecker.dto.PostSearchRequest;
+import kr.ac.dbapp.team1.gradchecker.repo.BoardTypeRepository;
 import kr.ac.dbapp.team1.gradchecker.repo.PostRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+
 import java.util.NoSuchElementException;
 
 /**
@@ -20,17 +23,24 @@ import java.util.NoSuchElementException;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final BoardTypeRepository boardTypeRepository;
 
-    public PostService(PostRepository postRepository) {
+    public PostService(PostRepository postRepository,
+                       BoardTypeRepository boardTypeRepository) {
         this.postRepository = postRepository;
+        this.boardTypeRepository = boardTypeRepository;
     }
 
-    //글 작성 api
+    // 글 작성 api
     @Transactional
     public Long createPost(PostRequest request, Long authenticatedUserId) {
+
+        BoardType boardType = boardTypeRepository.findById(request.getBoardTypeId())
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 게시판입니다."));
+
         Post post = Post.builder()
                 .userId(authenticatedUserId)
-                .boardTypeId(request.getBoardTypeId())
+                .boardType(boardType)
                 .title(request.getTitle())
                 .content(request.getContent())
                 .build();
@@ -39,7 +49,7 @@ public class PostService {
         return savedPost.getId();
     }
 
-    //글 조회 api
+    // 글 조회 api
     @Transactional
     public PostResponse getPostById(Long postId) {
         // isDeleted=false인 게시글만 조회
@@ -68,8 +78,11 @@ public class PostService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "게시글을 수정할 권한이 없습니다.");
         }
 
+        BoardType boardType = boardTypeRepository.findById(request.getBoardTypeId())
+                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 게시판입니다."));
+
         // 게시글 내용 업데이트 (Post 엔티티의 update 메서드 사용)
-        post.update(request.getTitle(), request.getContent(), request.getBoardTypeId());
+        post.update(request.getTitle(), request.getContent(), boardType);
     }
 
     // 글 삭제 api
@@ -87,11 +100,11 @@ public class PostService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "게시글을 삭제할 권한이 없습니다.");
         }
 
-        // 논리적 삭제 처리 (markAsDeleted 메서드는 Post 엔티티에 구현되어 있어야 합니다.)
+        // 논리적 삭제 처리
         post.markAsDeleted();
     }
 
-    //메인화면 복합 조회 API 구현
+    // 메인화면 복합 조회 API 구현
     @Transactional(readOnly = true)
     public Page<PostResponse> searchPosts(PostSearchRequest searchRequest) {
         Pageable pageable = searchRequest.toPageable();

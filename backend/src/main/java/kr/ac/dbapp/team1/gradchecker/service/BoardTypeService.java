@@ -19,7 +19,7 @@ public class BoardTypeService {
         this.boardTypeRepository = boardTypeRepository;
     }
 
-    //삭제 되지 않은 게시판 조회
+    // 삭제 되지 않은 게시판 조회
     public List<BoardTypeResponse> getAllBoardTypes() {
         List<BoardType> boardTypes = boardTypeRepository.findByIsDeletedFalse();
 

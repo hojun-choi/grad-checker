@@ -14,15 +14,22 @@ import org.springframework.web.server.ResponseStatusException;
 import jakarta.validation.Valid;
 import java.util.NoSuchElementException;
 
+import kr.ac.dbapp.team1.gradchecker.dto.BoardTypeResponse;
+import kr.ac.dbapp.team1.gradchecker.dto.PostListResponse;
+import kr.ac.dbapp.team1.gradchecker.service.BoardTypeService;
+import java.util.List;
+
 //게시글 CRUD 및 목록 조회 API
 @RestController
-@RequestMapping("/api/board/posts") // 최종 확정된 URL 경로 사용
+@RequestMapping("/board/posts") // 최종 확정된 URL 경로 사용
 public class PostController {
 
     private final PostService postService;
+    private final BoardTypeService boardTypeService;
 
-    public PostController(PostService postService) {
+    public PostController(PostService postService, BoardTypeService boardTypeService) {
         this.postService = postService;
+        this.boardTypeService = boardTypeService;
     }
 
     // 예외 처리 핸들러 추가
@@ -39,25 +46,34 @@ public class PostController {
         return e.getReason();
     }
 
-    //글 작성 api
+    // 글 작성 api
     @PostMapping
     public ResponseEntity<Long> createPost(@Valid @RequestBody PostRequest request) {
         Long authenticatedUserId = 1L;
-
 
         Long postId = postService.createPost(request, authenticatedUserId);
         // 생성 성공 시 201 CREATED 상태 코드 + ID
         return ResponseEntity.status(HttpStatus.CREATED).body(postId);
     }
 
-    //글 조회 api
+    // 게시글 목록 조회 API (GET /board/posts)
+    @GetMapping
+    public ResponseEntity<PostListResponse> getAllPosts(@ModelAttribute PostSearchRequest searchRequest) {
+        Page<PostResponse> responsePage = postService.searchPosts(searchRequest);
+        List<BoardTypeResponse> boardTypes = boardTypeService.getAllBoardTypes();
+
+        return ResponseEntity.ok(PostListResponse.of(responsePage, boardTypes));
+    }
+
+    // 글 조회 api
     @GetMapping("/{postId}")
     public ResponseEntity<PostResponse> getPostById(@PathVariable Long postId) {
         PostResponse response = postService.getPostById(postId);
         // 조회 성공 시 - 200ok
         return ResponseEntity.ok(response);
     }
-    //글 수정 api
+
+    // 글 수정 api
     @PutMapping("/{postId}")
     public ResponseEntity<Void> updatePost(
             @PathVariable Long postId,
@@ -68,7 +84,7 @@ public class PostController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
-    //글 삭제 api 구현
+    // 글 삭제 api 구현
     @DeleteMapping("/{postId}")
     public ResponseEntity<Void> deletePost(
             @PathVariable Long postId,
@@ -78,7 +94,7 @@ public class PostController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
-    //메인 화면 복합 조회 API구현
+    // 메인 화면 복합 조회 API구현
     @GetMapping("/search")
     public ResponseEntity<Page<PostResponse>> searchPosts(@ModelAttribute PostSearchRequest searchRequest) {
         Page<PostResponse> responsePage = postService.searchPosts(searchRequest);

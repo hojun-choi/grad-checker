@@ -6,7 +6,7 @@ import kr.ac.dbapp.team1.gradchecker.service.EvaluationService;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/evaluate")
+@RequestMapping("/evaluate")
 public class EvaluateController {
 
   private final EvaluationService service;

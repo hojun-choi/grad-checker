@@ -45,6 +45,7 @@
             v-model="search"
             type="search"
             placeholder="제목 / 작성자 검색"
+            @keyup.enter="fetchPosts"
           />
         </div>
       </div>
@@ -100,9 +101,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../../composables/useAuth.js'
+import { api } from '../../api/api.js'
 
 const router = useRouter()
 
@@ -111,87 +113,70 @@ const { isAuthenticated } = useAuth()
 const isAuthed = computed(() => isAuthenticated())
 
 // 말머리(카테고리)
-const categories = [
-  { value: 'all',   label: '전체' },
-  { value: 'grad',  label: '졸업 요건' },
-  { value: 'course',label: '수강 / 시간표' },
-  { value: 'major', label: '전과 / 복수전공' },
-  { value: 'free',  label: '자유글' },
-]
+const categories = ref([
+  { value: 'all', label: '전체' },
+])
 
 // 검색 / 필터 / 정렬 상태
 const search = ref('')
 const category = ref('all')
 const sort = ref('latest')
 
-// 일단은 더미 데이터로 목록 구성 (나중에 API 연동만 갈아끼우면 됨)
-const posts = ref([
-  {
-    id: 1,
-    category: 'grad',
-    title: '23학번 AI융합 졸업요건 정리표 공유합니다',
-    author: '익명',
-    createdAt: '2025-11-11',
-    views: 128,
-    replies: 4,
-  },
-  {
-    id: 2,
-    category: 'course',
-    title: '4학년 1학기 시간표 한 번만 봐주세요ㅠ',
-    author: '익명2',
-    createdAt: '2025-11-09',
-    views: 96,
-    replies: 7,
-  },
-  {
-    id: 3,
-    category: 'major',
-    title: '융특 → AI융합 전과 경험 공유 & 질문 받습니다',
-    author: '익명3',
-    createdAt: '2025-11-05',
-    views: 210,
-    replies: 9,
-  },
-  {
-    id: 4,
-    category: 'free',
-    title: 'DB응용 기말 대비 스터디 같이 하실 분?',
-    author: '익명4',
-    createdAt: '2025-11-03',
-    views: 75,
-    replies: 2,
-  },
-])
+const posts = ref([])
 
-// 필터 + 검색 + 정렬 적용된 최종 리스트
-const filteredPosts = computed(() => {
-  let list = posts.value.slice()
+async function fetchPosts() {
+  try {
+    const params = {
+      page: 0,
+      size: 20,
+      sortBy: sort.value,
+    }
 
-  if (category.value !== 'all') {
-    list = list.filter((p) => p.category === category.value)
+    if (category.value !== 'all') {
+      params.boardName = category.value
+    }
+    if (search.value.trim()) {
+      params.keyword = search.value.trim()
+    }
+
+    const response = await api.get('/board/posts', { params })
+    // 백엔드 PostListResponse 구조: { posts: { content: [], ... }, boardTypes: [] }
+    posts.value = response.data.posts.content
+    
+    // 카테고리 목록 업데이트 (전체 + 서버에서 받은 목록)
+    const serverCategories = response.data.boardTypes.map(bt => ({
+      value: bt.boardName, // boardName이 식별자로 쓰인다고 가정 (예: 'grad', 'course' 등)
+      label: bt.boardName, // 화면 표시 이름도 boardName 사용 (필요 시 별도 필드 확인)
+    }))
+    categories.value = [{ value: 'all', label: '전체' }, ...serverCategories]
+
+  } catch (error) {
+    console.error('게시글 목록 조회 실패:', error)
   }
+}
 
-  const q = search.value.trim().toLowerCase()
-  if (q) {
-    list = list.filter((p) =>
-      p.title.toLowerCase().includes(q) ||
-      p.author.toLowerCase().includes(q)
-    )
-  }
-
-  if (sort.value === 'latest') {
-    // createdAt이 'YYYY-MM-DD' 문자열이라면 이 정도 정렬이면 충분
-    list.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-  } else if (sort.value === 'popular') {
-    list.sort((a, b) => b.views - a.views)
-  }
-
-  return list
+onMounted(() => {
+  fetchPosts()
 })
 
+// 필터 변경 시 재조회
+watch([category, sort], () => {
+  fetchPosts()
+})
+
+// 검색어 엔터 처리 등을 위해 별도 함수로 빼거나 watch로 처리 가능
+// 여기서는 간단히 watch로 처리 (디바운싱 없으면 입력마다 요청가니 주의, 일단은 엔터 칠 때만 하려면 @keyup.enter="fetchPosts" 권장)
+// 기존 UI에 검색 버튼이 없으므로, 입력 후 엔터치면 재조회되도록 수정하는 게 좋음.
+// 일단은 computed filteredPosts 로직을 제거하고 서버 사이드 필터링으로 전환했으므로
+// filteredPosts 대신 posts를 바로 사용해야 함.
+
+// 필터 + 검색 + 정렬 적용된 최종 리스트
+// 필터 + 검색 + 정렬 적용된 최종 리스트
+// 서버 사이드 페이징/필터링을 사용하므로 computed 제거하고 posts를 직접 사용
+const filteredPosts = computed(() => posts.value)
+
 function categoryLabel(value) {
-  const found = categories.find((c) => c.value === value)
+  const found = categories.value.find((c) => c.value === value)
   return found ? found.label : value
 }
 

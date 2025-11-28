@@ -12,7 +12,7 @@ import jakarta.validation.Valid;
  * 댓글 CRUD API 엔드포인트를 처리하는 컨트롤러입니다.
  */
 @RestController
-@RequestMapping("/api/board")
+@RequestMapping("/board")
 public class CommentController {
 
     private final CommentService commentService;

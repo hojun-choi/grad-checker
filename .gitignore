@@ -3,3 +3,5 @@ notepad .gitignore
 __pycache__/
 .env
 venv
+chroma_db/*
+!chroma_db/.gitkeep

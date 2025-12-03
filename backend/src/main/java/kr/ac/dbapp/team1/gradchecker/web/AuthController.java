@@ -37,7 +37,33 @@ public class AuthController {
     }
 
     /**
-     * brief [회원가입] POST /api/auth/register
+     * [아이디 중복확인] GET /auth/check-login-id?loginId=...
+     *
+     * 프론트에서 기대하는 응답:
+     * { "available": true } 또는 { "available": false }
+     */
+    @GetMapping("/check-login-id")
+    public ResponseEntity<?> checkLoginId(@RequestParam("loginId") String loginId) {
+        if (loginId == null || loginId.trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "loginId는 비어 있을 수 없습니다."));
+        }
+
+        boolean available = authService.isLoginIdAvailable(loginId.trim());
+        return ResponseEntity.ok(Map.of("available", available));
+    }
+
+    /**
+     * [회원가입] POST /auth/register
+     *
+     * 프론트에서 보내는 JSON 예시:
+     * {
+     *   "loginId": "hojun123",
+     *   "password": "pw123456",
+     *   "username": "최호준",
+     *   "studentId": 20203137,
+     *   "majorId": 1
+     * }
      */
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
@@ -54,7 +80,15 @@ public class AuthController {
     }
 
     /**
-     * brief [로그인] POST /api/auth/login
+     * [로그인] POST /auth/login
+     *
+     * 프론트에서 보내는 JSON 예시:
+     * {
+     *   "loginId": "hojun123",
+     *   "password": "pw123456"
+     * }
+     *
+     * LoginRequest 는 loginId / password 필드를 가져야 한다.
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(
@@ -64,7 +98,8 @@ public class AuthController {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.username(),
+                            // 🔥 username 대신 loginId 로 인증
+                            request.loginId(),
                             request.password()
                     )
             );
@@ -79,9 +114,7 @@ public class AuthController {
                     context
             );
 
-            // AuthService를 통해 응답 DTO 생성 (Student 참조 없음)
             AuthResponse response = authService.generateAuthResponse(authentication);
-
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -91,7 +124,7 @@ public class AuthController {
     }
 
     /**
-     *  [현재 사용자 조회] GET /api/auth/me
+     * [현재 사용자 조회] GET /auth/me
      */
     @GetMapping("/me")
     public ResponseEntity<?> me(@AuthenticationPrincipal User user) {
@@ -99,7 +132,6 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        // AuthService를 통해 응답 DTO 생성
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         AuthResponse response = authService.generateAuthResponse(authentication);
 
@@ -107,7 +139,7 @@ public class AuthController {
     }
 
     /**
-     * [로그아웃] POST /api/auth/logout
+     * [로그아웃] POST /auth/logout
      */
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {

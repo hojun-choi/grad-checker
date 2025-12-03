@@ -22,24 +22,65 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     /**
+     * [아이디 중복확인] loginId 사용 가능 여부
+     *  - 컨트롤러: GET /auth/check-login-id?loginId=...
+     */
+    @Transactional(readOnly = true)
+    public boolean isLoginIdAvailable(String loginId) {
+        if (loginId == null || loginId.trim().isEmpty()) {
+            return false;
+        }
+        return !userRepository.existsByLoginId(loginId.trim());
+    }
+
+    /**
      * [회원가입] 사용자 정보를 저장소에 저장하고, 비밀번호를 해싱합니다.
+     *
+     * users 테이블 구조:
+     *  - login_id    (로그인용 ID)
+     *  - password_hash
+     *  - username    (실제 이름)
+     *  - student_id  (학번)
+     *  - major_id    (FK -> major.id)
      */
     @Transactional
     public User register(RegisterRequest request) {
 
-        // 1. 중복 체크
-        if (userRepository.existsByLoginId(request.getUsername())) {
-            throw new IllegalArgumentException("이미 사용 중인 로그인 ID입니다");
+        String loginId   = request.getLoginId();
+        String username  = request.getUsername();
+        Long   studentId = request.getStudentId();
+        Long   majorId   = request.getMajorId();
+
+        // 0. 기본 값 검증
+        if (loginId == null || loginId.trim().isEmpty()) {
+            throw new IllegalArgumentException("로그인 ID는 필수입니다.");
+        }
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("이름은 필수입니다.");
+        }
+        if (studentId == null) {
+            throw new IllegalArgumentException("학번은 필수입니다.");
+        }
+        if (majorId == null) {
+            throw new IllegalArgumentException("전공(majorId)은 필수입니다.");
+        }
+
+        // 1. loginId 중복 체크
+        if (userRepository.existsByLoginId(loginId.trim())) {
+            throw new IllegalArgumentException("이미 사용 중인 로그인 ID입니다.");
         }
 
         // 2. 비밀번호 해싱
         String hashedPassword = passwordEncoder.encode(request.getPassword());
 
-        // 3. User 엔티티 생성 및 DB 저장 (Student 관계 및 학번 검증 로직 제거)
+        // 3. User 엔티티 생성 및 DB 저장
+        //    (User 엔티티에 studentId, majorId 필드가 있다고 가정)
         User newUser = User.builder()
-                .loginId(request.getUsername())
-                .username(request.getUsername())
+                .loginId(loginId.trim())
+                .username(username.trim())
                 .passwordHash(hashedPassword)
+                .studentId(studentId)
+                .majorId(majorId)
                 .isDeleted(false)
                 .build();
 
@@ -48,6 +89,8 @@ public class AuthService {
 
     /**
      * Authentication 객체에서 사용자 정보를 추출하여 응답 DTO를 생성합니다.
+     *
+     * /auth/login, /auth/me 에서 공통으로 사용됨.
      */
     public AuthResponse generateAuthResponse(Authentication authentication) {
         User userDetails = (User) authentication.getPrincipal();
@@ -57,11 +100,11 @@ public class AuthService {
                 .map(role -> role.replace("ROLE_", ""))
                 .collect(Collectors.toList());
 
-        // Student 필드가 제거되었으므로, 관련 필드는 null 처리합니다.
+        // 지금 구조에서는 catalogYear 같은 건 없으니 일단 null 유지
         return AuthResponse.builder()
                 .username(userDetails.getUsername())
                 .roles(roles)
-                .catalogYear(null) // Student 엔티티 제거로 인해 null
+                .catalogYear(null)
                 .build();
     }
 }

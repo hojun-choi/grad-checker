@@ -1,0 +1,128 @@
+[
+{
+  "type": "ge_required",
+  "entry_year": 2020,
+  "total_required_credits": 16,
+  "subjects": [
+    {
+      "subject_name": "현대인과성서",
+      "credit": 3
+    },
+    {
+      "subject_name": "Academic and Professional English 1",
+      "credit": 2
+    },
+    {
+      "subject_name": "Academic and Professional English 2",
+      "credit": 2
+    },
+    {
+      "subject_name": "대학글쓰기",
+      "credit": 2
+    },
+    {
+      "subject_name": "독서와토론",
+      "credit": 2
+    },
+    {
+      "subject_name": "한반도평화와통일",
+      "credit": 1
+    },
+    {
+      "subject_name": "컴퓨팅적사고",
+      "credit": 2
+    },
+    {
+      "subject_name": "기업가정신과행동",
+      "credit": 2
+    }
+  ]
+},
+{
+  "type": "ge_required",
+  "entry_year": [2021,2022],
+
+  "total_required_credits": 18,
+  "subjects": [
+    {
+      "subject_name": "현대인과성서",
+      "credit": 3
+    },
+    {
+      "subject_name": "Academic and Professional English 1",
+      "credit": 2
+    },
+    {
+      "subject_name": "Academic and Professional English 2",
+      "credit": 2
+    },
+    {
+      "subject_name": "대학글쓰기",
+      "credit": 2
+    },
+    {
+      "subject_name": "독서와토론",
+      "credit": 2
+    },
+    {
+      "subject_name": "한반도평화와통일",
+      "credit": 1
+    },
+    {
+      "subject_name": "컴퓨팅적사고",
+      "credit": 2
+    },
+    {
+      "subject_name": "AI와데이터사회",
+      "credit": 2
+    },
+    {
+      "subject_name": "기업가정신과행동",
+      "credit": 2
+    }
+  ]
+},
+{
+  "type": "ge_required",
+  "entry_year": [2023,2024, 2025],
+  "total_required_credits": 19,
+  "subjects": [
+    {
+      "subject_name": "인문적상상력과소통",
+      "credit": 2
+    },
+    {
+      "subject_name": "비판적사고와표현",
+      "credit": 2
+    },
+    {
+      "subject_name": "창의적사고와혁신",
+      "credit": 2
+    },
+    {
+      "subject_name": "인간과성서",
+      "credit": 2
+    },
+    {
+      "subject_name": "글로벌시민의식",
+      "credit": 2
+    },
+    {
+      "subject_name": "글로벌소통과언어",
+      "credit": 3
+    },
+    {
+      "subject_name": "한반도평화와통일",
+      "credit": 1
+    },
+    {
+      "subject_name": "컴퓨팅적사고",
+      "credit": 2
+    },
+    {
+      "subject_name": "SW와AI",
+      "credit": 3
+    }
+  ]
+}
+]

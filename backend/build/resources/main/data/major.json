@@ -1,0 +1,112 @@
+[
+  {
+    "major": "수학과",
+    "specific_major": "단일전공",
+    "entry_year": [2020,2021,2022,2023],
+    "major_foundation": 18,
+    "major_required": 9,
+    "major_elective": 54,
+    "required_all": 133,
+    "additional_requirements": ""
+  },
+    {
+    "major": "수학과",
+    "specific_major": "단일전공",
+    "entry_year": [2024,2025],
+    "major_foundation": 15,
+    "major_required": 9,
+    "major_elective": 63,
+    "required_all": 133,
+    "additional_requirements": ""
+  },
+    {
+    "major": "화학과",
+    "specific_major": "단일전공",
+    "entry_year": [2020,2021,2022,2023],
+    "major_foundation": 18,
+    "major_required": 11,
+    "major_elective": 52,
+    "required_all": 133,
+    "additional_requirements": "졸업논문"
+  },
+    {
+    "major": "화학과",
+    "specific_major": "단일전공",
+    "entry_year": [2024,2025],
+    "major_foundation": 15,
+    "major_required": 11,
+    "major_elective": 61,
+    "required_all": 133,
+    "additional_requirements": "졸업논문"
+  },
+      {
+    "major": "의생명시스템학부",
+    "specific_major": "단일전공",
+    "entry_year": [2020,2021,20222, 2023],
+    "major_foundation": 18,
+    "major_required": 0,
+    "major_elective": 63,
+    "required_all": 133,
+    "additional_requirements": "졸업논문"
+  },
+    {
+    "major": "의생명시스템학부",
+    "specific_major": "단일전공",
+    "entry_year": [2024],
+    "major_foundation": 15,
+    "major_required": 0,
+    "major_elective": 72,
+    "required_all": 133,
+    "additional_requirements": "졸업논문"
+  },
+    {
+    "major": "의생명시스템학부",
+    "specific_major": "단일전공",
+    "entry_year": [2025],
+    "major_foundation": 15,
+    "major_required": 3,
+    "major_elective": 72,
+    "required_all": 133,
+    "additional_requirements": "졸업논문"
+  },
+    {
+    "major": "물리학과",
+    "specific_major": "단일전공",
+    "entry_year": [2020,2021,2022,2023],
+    "major_foundation": 18,
+    "major_required": 11,
+    "major_elective": 52,
+    "required_all": 133,
+    "additional_requirements": "졸업논문"
+  },
+    {
+    "major": "물리학과",
+    "specific_major": "단일전공",
+    "entry_year": [2024,2025],
+    "major_foundation": 15,
+    "major_required": 11,
+    "major_elective": 61,
+    "required_all": 133,
+    "additional_requirements": "졸업논문"
+  },
+    {
+    "major": "정보통계·보험수리학과",
+    "specific_major": "단일전공",
+    "entry_year": [2020,2021,2022,2023],
+    "major_foundation": 18,
+    "major_required": 9,
+    "major_elective": 54,
+    "required_all": 133,
+    "additional_requirements": "졸업시험"
+  },
+      {
+    "major": "통계·보험수리학과",
+    "specific_major": "단일전공",
+    "entry_year": [2024,2025],
+    "major_foundation": 15,
+    "major_required": 9,
+    "major_elective": 63,
+    "required_all": 133,
+    "additional_requirements": "졸업시험"
+  }
+]

@@ -2,9 +2,9 @@
 -- 전공/학과 테이블
 -- =======================================================
 CREATE TABLE IF NOT EXISTS major (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT, -- 직접 ID를 넣어도 되고, 안 넣으면 자동 증가
-  name VARCHAR(100) NOT NULL UNIQUE,    -- 학과명 (중복 방지)
-  is_disabled TINYINT(1) NOT NULL DEFAULT 0, -- 0: 활성, 1: 비활성
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,         -- 직접 ID를 넣어도 되고, 안 넣으면 자동 증가
+  name VARCHAR(100) NOT NULL UNIQUE,            -- 학과명 (중복 방지)
+  is_disabled TINYINT(1) NOT NULL DEFAULT 0,    -- 0: 활성, 1: 비활성
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -23,11 +23,10 @@ CREATE TABLE IF NOT EXISTS users (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-  -- [추가됨] major 테이블의 id와 연결 (FK)
+  -- major 테이블의 id와 연결 (FK)
   CONSTRAINT fk_users_major FOREIGN KEY (major_id) 
       REFERENCES major(id) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 -- =======================================================
 -- 게시판 종류 테이블 (board_types)
@@ -40,16 +39,15 @@ CREATE TABLE IF NOT EXISTS board_types (
   is_deleted TINYINT(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
 -- =======================================================
---  게시글 테이블 (posts)
+-- 게시글 테이블 (posts)
 -- =======================================================
 CREATE TABLE IF NOT EXISTS posts (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,
   board_type_id BIGINT NOT NULL,
   title VARCHAR(200) NOT NULL,
-  content MEDIUMTEXT NOT NULL,  
+  content MEDIUMTEXT NOT NULL,
   -- 익명 여부 (0: 실명, 1: 익명)
   is_anonymous TINYINT(1) NOT NULL DEFAULT 0,
   comment_count INT NOT NULL DEFAULT 0,
@@ -57,19 +55,19 @@ CREATE TABLE IF NOT EXISTS posts (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+
   -- users 테이블의 PK(id) 참조
   CONSTRAINT fk_posts_user FOREIGN KEY (user_id) REFERENCES users(id)
        ON UPDATE CASCADE ON DELETE CASCADE,
   -- board_types 테이블의 PK(id) 참조
   CONSTRAINT fk_posts_btype FOREIGN KEY (board_type_id) REFERENCES board_types(id)
-       ON UPDATE CASCADE ON DELETE RESTRICT
+       ON UPDATE CASCADE ON DELETE RESTRICT,
+
+  -- 게시판별 조회를 빠르게 하기 위한 인덱스
+  INDEX idx_posts_btype (board_type_id),
+  -- 제목+내용 검색을 위한 풀텍스트 인덱스
+  FULLTEXT INDEX ftx_posts (title, content)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- 게시판별 조회를 빠르게 하기 위한 인덱스
-CREATE INDEX idx_posts_btype ON posts(board_type_id);
--- 제목+내용 검색을 위한 풀텍스트 인덱스
-ALTER TABLE posts ADD FULLTEXT INDEX ftx_posts (title, content);
-
 
 -- =======================================================
 -- 댓글 테이블 (comments)
@@ -84,6 +82,7 @@ CREATE TABLE IF NOT EXISTS comments (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+
   -- posts 테이블의 id 참조
   CONSTRAINT fk_comments_post FOREIGN KEY (post_id) REFERENCES posts(id)
       ON UPDATE CASCADE ON DELETE CASCADE,
@@ -94,7 +93,6 @@ CREATE TABLE IF NOT EXISTS comments (
   CONSTRAINT fk_comments_parent FOREIGN KEY (parent_comment_id) REFERENCES comments(id)
       ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 -- =======================================================
 -- RAG 질의응답 로그 (질문과 답변만 저장)
@@ -110,7 +108,6 @@ CREATE TABLE IF NOT EXISTS rag_logs (
   CONSTRAINT fk_rag_logs_user FOREIGN KEY (user_id) REFERENCES users(id)
       ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 -- =======================================================
 -- RAG 참조 문서 메타데이터 및 점수 (본문 제외)
@@ -153,19 +150,20 @@ CREATE TABLE IF NOT EXISTS major_history (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-  -- [추가됨] major 테이블의 id와 연결 (Foreign Key)
+  -- major 테이블의 id와 연결 (Foreign Key)
   -- major 테이블의 id가 변경되면 여기도 같이 변경(CASCADE)
   -- major 테이블의 데이터가 삭제되려 할 때 이 히스토리가 있으면 삭제 막음(RESTRICT)
   CONSTRAINT fk_history_major FOREIGN KEY (current_major_id) 
-      REFERENCES major(id) ON UPDATE CASCADE ON DELETE RESTRICT
-  -- [핵심 추가] 같은 학과는 같은 연도에 중복 등록 불가!
-  CONSTRAINT uk_major_history_year UNIQUE (current_major_id, year)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      REFERENCES major(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 
--- 검색 성능을 위한 인덱스
-CREATE INDEX idx_major_history_year ON major_history(year);
-CREATE INDEX idx_major_history_name ON major_history(major_name);
-CREATE INDEX idx_major_history_cur_id ON major_history(current_major_id);
+  -- 같은 학과는 같은 연도에 중복 등록 불가!
+  CONSTRAINT uk_major_history_year UNIQUE (current_major_id, year),
+
+  -- 검색 성능을 위한 인덱스
+  INDEX idx_major_history_year (year),
+  INDEX idx_major_history_name (major_name),
+  INDEX idx_major_history_cur_id (current_major_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =======================================================
 -- 강의 시간표 메인 테이블 (lecture_timetable)
@@ -203,12 +201,12 @@ CREATE TABLE IF NOT EXISTS lecture_timetable (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   -- 학교 특성상 과목코드(분반 포함)가 유니크하므로 유니크 키 설정
-  CONSTRAINT uk_lecture_timetable UNIQUE (year, semester, course_code)
+  CONSTRAINT uk_lecture_timetable UNIQUE (year, semester, course_code),
+
+  -- 검색 성능을 위한 인덱스
+  INDEX idx_lecture_year_sem (year, semester),
+  INDEX idx_lecture_title (course_title)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE INDEX idx_lecture_year_sem ON lecture_timetable(year, semester);
-CREATE INDEX idx_lecture_title ON lecture_timetable(course_title);
-
 
 -- =======================================================
 -- 강의 시간/장소 테이블 (lecture_schedule)
@@ -227,10 +225,10 @@ CREATE TABLE IF NOT EXISTS lecture_schedule (
   -- 부모 강의 삭제 시 시간표도 자동 삭제
   CONSTRAINT fk_schedule_lecture FOREIGN KEY (lecture_id) 
       REFERENCES lecture_timetable(id) ON UPDATE CASCADE ON DELETE CASCADE,
-  -- [핵심 추가] 같은 강의가 같은 요일/시간에 중복 등록되는 것을 방지
+
+  -- 같은 강의가 같은 요일/시간에 중복 등록되는 것을 방지
   CONSTRAINT uk_lecture_schedule UNIQUE (lecture_id, meeting_day, start_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 -- =======================================================
 -- 강의 이수 구분/인정 학과 테이블 (lecture_eligibility)

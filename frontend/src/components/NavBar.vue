@@ -7,7 +7,6 @@
         <RouterLink to="/board">게시판</RouterLink>
         <RouterLink to="/schedule">시간표·졸업 관리</RouterLink>
         <RouterLink to="/friends">친구&amp;그룹</RouterLink>
-        <RouterLink to="/rag">공지 검색AI</RouterLink>
       </nav>
     </div>
 

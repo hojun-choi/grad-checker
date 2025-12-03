@@ -1,0 +1,17 @@
+# requirements.txt  (Python 3.11)
+
+# --- RAG / server ---
+chromadb==0.5.5
+FlagEmbedding==1.2.10
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-dotenv==1.0.1
+rank-bm25==0.2.2
+pydantic==2.9.2
+google-generativeai
+
+# --- crawler(scripts/main.py) ---
+beautifulsoup4==4.14.3
+pandas==2.3.3
+selenium==4.38.0
+webdriver_manager==4.0.2

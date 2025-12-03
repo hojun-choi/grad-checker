@@ -12,7 +12,7 @@
 // })
 
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../pages/Home.vue'
+import Home from '../pages/Dashboard/index.vue'
 import Board from '../pages/Board/index.vue'
 import BoardWrite from '../pages/Board/Write.vue'
 import BoardDetail from '../pages/Board/Detail.vue'
@@ -55,9 +55,6 @@ const routes = [
 
   // 친구 목록
   { path: '/friends', name: 'friends', component: Friends },
-
-  // RAG 검색
-  { path: '/rag', name: 'rag', component: Rag },
 
   // 나머지 → 홈으로
   { path: '/:pathMatch(.*)*', redirect: '/' },

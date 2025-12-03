@@ -4,556 +4,707 @@
     <!-- 상단 헤더 -->
     <header class="rag__header">
       <div>
-        <h1>RAG 검색</h1>
+        <h2>공지AI β</h2>
         <p class="rag__subtitle">
-          학교·학과 공지, 규정 등을 기반으로 궁금한 내용을 검색할 수 있는 기능입니다.
+          학교·학과 공지와 학사 규정을 한 번에 찾아주는 실험용(베타) 기능입니다.
         </p>
       </div>
     </header>
 
-    <!-- 본문: 채팅 영역 + 입력 바 -->
-    <div class="rag__shell">
-      <!-- 메시지 영역 -->
-      <div ref="messagesEl" class="rag__messages">
-        <!-- 비어 있을 때 -->
-        <div v-if="!messages.length" class="rag__empty">
-          <p class="rag__empty-title">무엇이 궁금하신가요?</p>
-          <p class="rag__empty-desc">
-            예시 질문을 눌러보거나, 하단 입력창에 자유롭게 질문을 입력해보세요.
-          </p>
+    <div class="rag__content">
+      <!-- 검색 영역 -->
+      <section class="rag__search-card">
+        <form class="rag__search-form" @submit.prevent="handleSearch">
+          <label class="rag__label" for="rag-query">
+            공지나 규정, 절차를 검색해 보세요.
+          </label>
 
-          <div class="rag__suggest">
-            <span class="rag__suggest-label">예시 질문</span>
-            <div class="rag__suggest-list">
-              <button
-                v-for="s in suggestions"
-                :key="s.id"
-                class="chip chip--ghost"
-                @click="fillFromSuggestion(s.text)"
-              >
-                {{ s.text }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 채팅 내역 -->
-        <template v-else>
-          <div
-            v-for="msg in messages"
-            :key="msg.id"
-            class="chat-row"
-            :class="{
-              'chat-row--user': msg.role === 'user',
-              'chat-row--assistant': msg.role === 'assistant'
-            }"
-          >
-            <div
-              class="bubble"
-              :class="{
-                'bubble--user': msg.role === 'user',
-                'bubble--assistant': msg.role === 'assistant'
-              }"
+          <div class="rag__input-row">
+            <input
+              id="rag-query"
+              v-model="query"
+              type="text"
+              class="rag__input"
+              :placeholder="placeholder"
+              :disabled="isLoading"
+            />
+            <button
+              type="submit"
+              class="btn btn--primary"
+              :disabled="isLoading || isQueryEmpty"
             >
-              <p class="bubble__meta">
-                <span class="bubble__who">
-                  {{ msg.role === 'user' ? '나' : 'Graduation Checker' }}
-                </span>
-                <span class="bubble__time">{{ msg.time }}</span>
-              </p>
-              <p class="bubble__text">
-                {{ msg.text }}
-              </p>
-
-              <!-- 참고한 문서 목록 (assistant일 때만) -->
-              <div
-                v-if="msg.role === 'assistant' && msg.sources?.length"
-                class="bubble__sources"
-              >
-                <span class="bubble__sources-label">참고한 문서</span>
-                <div class="bubble__sources-list">
-                  <button
-                    v-for="src in msg.sources"
-                    :key="src.id"
-                    type="button"
-                    class="chip chip--source"
-                  >
-                    {{ src.label }}
-                  </button>
-                </div>
-              </div>
-            </div>
+              <span v-if="!isLoading">검색</span>
+              <span v-else>검색 중...</span>
+            </button>
           </div>
 
-          <!-- 로딩 중일 때 (검색 중 버블) -->
-          <div v-if="isLoading" class="chat-row chat-row--assistant">
-            <div class="bubble bubble--assistant bubble--loading">
-              <p class="bubble__meta">
-                <span class="bubble__who">Graduation Checker</span>
-              </p>
-              <div class="dot-loading">
-                <span></span><span></span><span></span>
-              </div>
-            </div>
+          <div class="rag__suggestions">
+            <span class="rag__hint-label">예시 질문</span>
+            <button
+              v-for="(s, idx) in suggestions"
+              :key="idx"
+              type="button"
+              class="rag__chip"
+              @click="useSuggestion(s)"
+              :disabled="isLoading"
+            >
+              {{ s }}
+            </button>
           </div>
-        </template>
-      </div>
+        </form>
+      </section>
 
-      <!-- 입력 영역 -->
-      <form class="rag__input" @submit.prevent="handleSend">
-        <textarea
-          v-model="draft"
-          class="rag__textarea"
-          rows="1"
-          placeholder="예: 23학번 AI융합 졸업요건에서 캡스톤디자인 필수인가요?"
-          @keydown.enter.exact.prevent="handleSubmitShortcut"
-          @keydown.ctrl.enter.prevent="handleEnter"
-        ></textarea>
-
-        <div class="rag__input-footer">
-          <p class="rag__hint">
-            Enter: 전송 · Ctrl + Enter: 줄바꿈
-          </p>
-          <button
-            type="submit"
-            class="send-btn"
-            :disabled="!draft.trim() || isLoading"
-          >
-            <span class="send-btn__icon">↑</span>
-          </button>
+      <!-- 결과 영역 -->
+      <section class="rag__result-card" v-if="hasResult">
+        <!-- 로딩 중 -->
+        <div v-if="isLoading" class="rag__loading">
+          <span class="rag__spinner" aria-hidden="true" />
+          <span>관련 공지를 모으는 중입니다. 잠시만 기다려 주세요...</span>
         </div>
-      </form>
+
+        <!-- 에러 -->
+        <div v-else-if="error" class="rag__error">
+          {{ error }}
+        </div>
+
+        <!-- AI 답변 + 출처 -->
+        <div v-else-if="result">
+          <header class="rag__answer-header">
+            <h3>요약 답변</h3>
+            <p class="rag__answer-subtitle">
+              검색된 공지와 규정을 바탕으로 정리한 내용입니다. 실제 공지 원문을 반드시 함께
+              확인해 주세요.
+            </p>
+          </header>
+
+          <div
+            class="rag__answer-body"
+            v-html="formattedAnswer"
+          />
+
+          <section
+            v-if="topDocs.length"
+            class="rag__sources"
+          >
+            <h4>참고한 공지 / 규정 (상위 {{ topDocs.length }}건)</h4>
+            <ul class="rag__source-list">
+              <li
+                v-for="(doc, idx) in topDocs"
+                :key="doc.id || idx"
+                class="rag__source-item"
+              >
+                <a
+                  :href="doc.metadata?.link || doc.id"
+                  class="rag__source-title"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ doc.metadata?.title || `문서 ${idx + 1}` }}
+                </a>
+                <span class="rag__source-meta">
+                  <span v-if="doc.metadata?.department">
+                    {{ formatDepartment(doc.metadata.department) }}
+                  </span>
+                  <span v-if="doc.metadata?.department && doc.metadata?.date">
+                    ·
+                  </span>
+                  <span v-if="doc.metadata?.date">
+                    {{ doc.metadata.date }}
+                  </span>
+                </span>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </section>
+
+      <!-- 아직 검색 전일 때 안내 -->
+      <section
+        v-else
+        class="rag__empty"
+      >
+        <p class="rag__empty-main">
+          위 검색창에 궁금한 내용을 입력하면, 학교, 학과 공지를 기반으로
+          AI가 한 번에 정리해서 알려줍니다.
+        </p>
+        <ul class="rag__empty-list">
+          <li>“언제까지, 어떤 서류를 내야 하는지” 정리된 설명을 보고</li>
+          <li>바로 아래에서 관련 공지 원문 링크를 함께 확인할 수 있습니다.</li>
+          <li>이전 연도 공지도 함께 고려해서, 최신 학기 기준으로 안내해 줍니다.</li>
+        </ul>
+        <p class="rag__empty-tip">
+          예: <strong>공학교육인증 포기 신청 방법</strong>,
+          <strong>소프트웨어학부 졸업요건</strong>,
+          <strong>복수전공 신청 일정</strong>
+        </p>
+        <p class="rag__empty-notice">
+          ※ 실제 신청·변경 전에는 반드시 공지 원문과 u-SAINT 안내를 다시 확인해 주세요.
+        </p>
+      </section>
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { computed, ref } from 'vue'
+import { api } from '../../api/api.js'
 
-// 채팅 내역 (지금은 더미 데이터, 나중에 RAG 응답으로 교체)
-const messages = ref([])
-
-// 입력값
-const draft = ref('')
-
-// 로딩 상태
+const query = ref('')
 const isLoading = ref(false)
+const error = ref('')
+const result = ref(null)
 
-// 메시지 영역 ref (자동 스크롤)
-const messagesEl = ref(null)
+// =========================
+// 1) 학과 코드 → 한글 학과명 매핑
+// =========================
+const departmentDisplayNameMap = {
+  // 인문대
+  christian_studies: '기독교학과',
+  korean_language: '국어국문학과',
+  chinese_language: '중국어문학과',
+  english_language: '영어영문학과',
+  film_arts: '영화예술학과',
+  french_language: '불어불문학과',
+  german_language: '독어독문학과',
+  history: '사학과',
+  japanese_language: '일어일문학과',
+  philosophy: '철학과',
+  sports: '체육학과',
 
-// 간단한 더미 시계 함수
-function nowString() {
-  const d = new Date()
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${hh}:${mm}`
+  // 자연대
+  mathematics: '수학과',
+  physics: '물리학과',
+  chemistry: '화학과',
+  statistics: '통계학과',
+  biomedical_science: '생명과학과',
+
+  // IT·공과·기타 단과대
+  software: '소프트웨어학부',
+  computer: '컴퓨터학부',
+  infosec: '정보보호학과',
+  ai_convergence: 'AI융합학부',
+  electronic_engineering: '전자정보공학부',
+  global_media: '글로벌미디어학부',
+  chemical: '화학공학과',
+  industrial: '산업·정보시스템공학과',
+  electrical: '전기공학부',
+  mechanical: '기계공학부',
+  architecture: '건축학부',
+  material: '신소재공학과',
+  next_gen_semiconductor: '차세대반도체공학과',
+
+  // 법과대
+  globallaw: '국제법무학과',
+  law: '법학과',
+
+  // 사회과학대
+  socialwelfare: '사회복지학부',
+  publicadministration: '행정학부',
+  politicalscience_internationalrelations: '정치외교학과',
+  informationsociology: '정보사회학과',
+  journalism_publicrelation_advertising: '언론홍보학과',
+  lifelong_edu: '평생교육학과',
+
+  // 경제·통상대
+  economics: '경제학과',
+  global_commerce: '글로벌통상학과',
+  ecofinance: '금융경제학과',
+  internationaltrade_transaction: '국제무역학과',
+
+  // 경영대
+  business_administration: '경영학부',
+  venture_smallbusiness: '벤처중소기업학과',
+  accounting: '회계학부',
+  finance: '금융학부',
+  venture_management: '벤처경영학과',
+  innovation_management: '혁신경영학과',
+  welfare_management: '복지경영학과',
+  accounting_tex: '회계세무학과',
+
+  // 기타
+  liberal_study: '자유전공학부',
+  baird: '베어드학부대학',
+  ssu: '학교 학사공지',
 }
 
-// 예시 질문
+// =========================
+// 2) 학과 키워드 → 코드 매핑 (쿼리 확장용)
+// =========================
+// 한글 키워드(질문에 들어가는 단어) 기준으로 어떤 department 코드를 붙일지 정의
+const departmentKeywordMap = {
+  software: ['소프트웨어학부', '소프트웨어학과', '소프트웨어', '소웨', '솦'],
+  computer: ['컴퓨터학부', '컴퓨터공학부', '컴공', '컴학'],
+  infosec: ['정보보호학과', '정보'],
+  ai_convergence: ['ai융합학부', 'ai융합', '에이아이융합학부', '애융'],
+
+  industrial: [
+    '산업정보시스템공학과',
+    '산업·정보시스템공학과',
+    '산업시스템공학과',
+    '산업공학과',
+    '산업·시스템공학과',
+  ],
+  chemical: ['화학공학과', '화공'],
+  electrical: ['전기공학부', '전기공학과', '전기전자'],
+  mechanical: ['기계공학부', '기계공학과'],
+  architecture: ['건축학부', '건축학과'],
+  material: ['신소재공학과', '신소재'],
+
+  electronic_engineering: [
+    '전자정보공학부',
+    '전자정보공학과',
+    '전자공학부',
+    '전자공학과',
+    'it융합전자',
+  ],
+  global_media: ['글로벌미디어학부', '글미'],
+  next_gen_semiconductor: ['차세대반도체공학과', '차세대반도체'],
+
+  christian_studies: ['기독교학과'],
+  korean_language: ['국어국문학과', '국문학과'],
+  chinese_language: ['중국어문학과', '중문과', '중문학과'],
+  english_language: ['영어영문학과', '영문과', '영문학과'],
+  film_arts: ['영화예술학과', '영화과'],
+  french_language: ['불어불문학과', '불문과'],
+  german_language: ['독어독문학과', '독문과'],
+  history: ['사학과'],
+  japanese_language: ['일어일문학과', '일문과'],
+  philosophy: ['철학과'],
+  sports: ['체육학과'],
+
+  mathematics: ['수학과'],
+  physics: ['물리학과'],
+  chemistry: ['화학과'],
+  statistics: ['통계학과'],
+  biomedical_science: ['생명과학과', '생과'],
+
+  globallaw: ['국제법무학과'],
+  law: ['법학과'],
+
+  socialwelfare: ['사회복지학부', '사회복지학과'],
+  publicadministration: ['행정학부', '행정학과'],
+  politicalscience_internationalrelations: ['정치외교학과', '정외과'],
+  informationsociology: ['정보사회학과'],
+  journalism_publicrelation_advertising: ['언론홍보학과', '언홍과'],
+  lifelong_edu: ['평생교육학과'],
+
+  economics: ['경제학과'],
+  global_commerce: ['글로벌통상학과'],
+  ecofinance: ['금융경제학과'],
+  internationaltrade_transaction: ['국제무역학과'],
+
+  business_administration: ['경영학부', '경영학과'],
+  venture_smallbusiness: ['벤처중소기업학과'],
+  accounting: ['회계학부', '회계학과'],
+  finance: ['금융학부', '금융학과'],
+  venture_management: ['벤처경영학과'],
+  innovation_management: ['혁신경영학과'],
+  welfare_management: ['복지경영학과'],
+  accounting_tex: ['회계세무학과'],
+
+  liberal_study: ['자유전공학부', '자전'],
+  baird: ['베어드학부대학', '베어드대학'],
+  ssu: ['학교공지', '학사공지', '숭실대학교 공지'],
+}
+
+// 예시 질문들
 const suggestions = [
-  {
-    id: 1,
-    text: '23학번 AI융합 졸업요건에서 전공필수 몇 학점 들어야 하나요?',
-  },
-  {
-    id: 2,
-    text: '융특 → AI융합 전과했을 때, 전공기초 과목 인정은 어떻게 되나요?',
-  },
-  {
-    id: 3,
-    text: '23학번 기준으로 캡스톤디자인을 안 들으면 졸업이 불가능한가요?',
-  },
+  '공학교육인증 포기 신청 방법',
+  '소프트웨어학부 졸업요건',
+  '복수전공 신청 방법',
+  '휴학 절차',
 ]
 
-// 예시 질문 클릭 시 입력창에 채워 넣기
-function fillFromSuggestion(text) {
-  draft.value = text
+const placeholder = '예: 공학교육인증 포기 신청'
+
+const isQueryEmpty = computed(() => !query.value.trim())
+const hasResult = computed(() => isLoading.value || !!result.value || !!error.value)
+
+const topDocs = computed(() => {
+  if (!result.value?.docs) return []
+  // 너무 길어지지 않게 상위 6건만 노출
+  return result.value.docs.slice(0, 6)
+})
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 }
 
-// 메시지 변경 시 스크롤 맨 아래로
-watch(
-  () => messages.value.length,
-  () => {
-    nextTick(() => {
-      const el = messagesEl.value
-      if (el) {
-        el.scrollTop = el.scrollHeight
-      }
-    })
+// FastAPI answer는 마크다운 포맷이므로, 최소한의 포맷팅만 HTML로 변환
+const formattedAnswer = computed(() => {
+  if (!result.value?.answer) return ''
+  let html = escapeHtml(result.value.answer)
+
+  // 아주 간단한 마크다운 처리: **굵게**
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+  // 줄바꿈을 <br>로
+  html = html.replace(/\n/g, '<br>')
+  return html
+})
+
+// 학과 코드 → 한글 이름
+function formatDepartment(dep) {
+  if (!dep) return ''
+  return departmentDisplayNameMap[dep] || dep
+}
+
+// 사용자가 입력한 문장 안에 학과명이 있으면
+// 대응하는 department 코드를 뒤에 붙여서 쿼리 확장
+function expandQueryWithDepartment(originalQuery) {
+  const base = originalQuery
+  const lower = originalQuery.toLowerCase()
+  const tags = new Set()
+
+  for (const [code, keywords] of Object.entries(departmentKeywordMap)) {
+    if (
+      keywords.some((kw) => originalQuery.includes(kw)) || // 한글 그대로 포함 검사
+      keywords.some((kw) => lower.includes(kw.toLowerCase()))
+    ) {
+      tags.add(code)
+    }
   }
-)
 
-// Ctrl+Enter → 줄바꿈
-function handleEnter() {
-  draft.value += '\n'
+  if (tags.size === 0) return base
+
+  // 예: "소프트웨어학부 전과 신청" + " software" 같이 붙여서 보냄
+  return `${base} ${Array.from(tags).join(' ')}`
 }
 
-// Enter → 전송
-function handleSubmitShortcut() {
-  handleSend()
+function useSuggestion(text) {
+  query.value = text
+  // 예시 클릭하면 바로 검색까지
+  handleSearch()
 }
 
-// 전송 버튼 / Enter
-function handleSend() {
-  const content = draft.value.trim()
-  if (!content || isLoading.value) return
+async function handleSearch() {
+  if (isQueryEmpty.value || isLoading.value) return
 
-  // 사용자 메시지 추가
-  messages.value.push({
-    id: Date.now(),
-    role: 'user',
-    text: content,
-    time: nowString(),
-  })
-
-  draft.value = ''
   isLoading.value = true
+  error.value = ''
+  result.value = null
 
-  // TODO: 여기에서 실제 RAG 검색 API 호출
-  // ex) const res = await api.post('/api/rag/search', { query: content })
+  try {
+    const original = query.value.trim()
+    const expandedQuery = expandQueryWithDepartment(original)
 
-  // UI 전용 더미 응답
-  const fakeAnswer =
-    '여기에 RAG 검색 결과가 표시됩니다. 나중에 백엔드에서 가져온 답변으로 교체하면 됩니다.'
+    const payload = {
+      query: expandedQuery,
+      top_k: 10,
+    }
 
-  const fakeSources = [
-    {
-      id: 's1',
-      label: 'AI융합학과 학사요람 (2023년)',
-    },
-    {
-      id: 's2',
-      label: '졸업요건 안내 공지 (2024-02)',
-    },
-  ]
+    // 스프링 백엔드를 통해 FastAPI(/rag/query)로 전달
+    // 실제 HTTP 경로: /api/rag/query
+    const res = await api.post('/rag/query', payload)
 
-  messages.value.push({
-    id: Date.now() + 1,
-    role: 'assistant',
-    text: fakeAnswer,
-    time: nowString(),
-    sources: fakeSources,
-  })
-
-  isLoading.value = false
+    result.value = res.data
+  } catch (e) {
+    console.error(e)
+    error.value =
+      '검색 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
 <style scoped>
-/* Pretendard: 오픈 라이선스 한글 폰트 (SIL OFL) */
-@import url('https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css');
-
 .rag {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  width: 100%;
-  font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont,
-    system-ui, 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
+  gap: 12px;
 }
 
 /* 헤더 */
-.rag__header h1 {
-  font-size: 22px;
-  margin: 0 0 4px;
+.rag__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.rag__header h2 {
+  margin: 0;
+  font-size: 1.2rem;
   font-weight: 700;
 }
 
 .rag__subtitle {
-  margin: 0;
+  margin: 4px 0 0;
+  font-size: 0.85rem;
   color: #666;
-  font-size: 14px;
-  line-height: 1.5;
 }
 
-/* 외곽 셸
-   - 화면 높이 기준으로 고정
-   - 숫자(220px)는 상단 글로벌 헤더 + 페이지 제목/여백 + 하단 푸터를 대충 뺀 값이라
-     필요하면 조금씩 조절해서 맞추면 됨.
-*/
-.rag__shell {
-  margin-top: 4px;
+/* 본문 래퍼 */
+.rag__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 카드 공통 */
+.rag__search-card,
+.rag__result-card {
+  background: #ffffff;
   border-radius: 12px;
   border: 1px solid #eee;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 220px);
-  min-height: 320px;
-  min-width: 0;
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
-/* 메시지 영역: 여기만 스크롤 */
-.rag__messages {
-  flex: 1 1 auto;
-  padding: 16px 16px 8px;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-/* 빈 상태 */
+/* 검색 카드 아래 결과 카드/빈 카드가 어느 정도 높이를 갖게 */
+.rag__result-card,
 .rag__empty {
-  text-align: left;
-  color: #666;
-  font-size: 14px;
+  min-height: 220px;
 }
 
-.rag__empty-title {
-  margin: 0 0 4px;
-  font-weight: 600;
-  font-size: 15px;
-  color: #333;
-}
-
-.rag__empty-desc {
-  margin: 0 0 12px;
-  line-height: 1.5;
-}
-
-.rag__suggest {
-  margin-top: 8px;
-}
-
-.rag__suggest-label {
-  font-size: 13px;
-  color: #777;
-}
-
-.rag__suggest-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-/* 채팅 행 */
-.chat-row {
-  display: flex;
-  margin-bottom: 10px;
-}
-
-.chat-row--user {
-  justify-content: flex-end;
-}
-
-.chat-row--assistant {
-  justify-content: flex-start;
-}
-
-/* 말풍선 */
-.bubble {
-  max-width: 70%;
-  padding: 10px 12px;
-  border-radius: 16px;
-  font-size: 14px;
-  line-height: 1.6;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-}
-
-.bubble--user {
-  background: #1f7aec;
-  color: #fff;
-  border-bottom-right-radius: 4px;
-}
-
-.bubble--assistant {
-  background: #f5f7fb;
-  color: #111827;
-  border-bottom-left-radius: 4px;
-}
-
-.bubble__meta {
-  display: flex;
-  justify-content: space-between;
-  margin: 0 0 4px;
-  font-size: 11px;
-  opacity: 0.8;
-}
-
-.bubble__who {
-  font-weight: 600;
-}
-
-.bubble__text {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: keep-all;
-}
-
-/* 참고 문서 영역 */
-.bubble__sources {
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px dashed rgba(148, 163, 184, 0.6);
-}
-
-.bubble__sources-label {
-  display: block;
-  font-size: 11px;
-  color: #6b7280;
-  margin-bottom: 4px;
-}
-
-.bubble__sources-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* 로딩 버블 */
-.bubble--loading {
-  max-width: 120px;
-}
-
-.dot-loading {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.dot-loading span {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: #4b5563;
-  opacity: 0.4;
-  animation: dot 1s infinite ease-in-out;
-}
-
-.dot-loading span:nth-child(2) {
-  animation-delay: 0.15s;
-}
-.dot-loading span:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-@keyframes dot {
-  0%,
-  80%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  40% {
-    transform: translateY(-3px);
-    opacity: 1;
-  }
-}
-
-/* 입력 영역 (아래 고정) */
-.rag__input {
-  border-top: 1px solid #eee;
-  padding: 10px 12px 12px;
+/* 검색 폼 */
+.rag__search-form {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.rag__textarea {
-  width: 100%;
-  border-radius: 10px;
-  border: 1px solid #ddd;
-  padding: 8px 10px;
-  font-size: 14px;
-  resize: none;
-  max-height: 160px;
-  min-height: 40px;
-  box-sizing: border-box;
-  font-family: inherit;
-  line-height: 1.6;
+.rag__label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 2px;
 }
 
-.rag__textarea:focus {
-  border-color: #1f7aec;
-  outline: none;
-  box-shadow: 0 0 0 1px rgba(31, 122, 236, 0.15);
-}
-
-.rag__input-footer {
+.rag__input-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
   gap: 8px;
 }
 
-.rag__hint {
-  margin: 0;
-  font-size: 11px;
-  color: #9ca3af;
-}
-
-/* 예시 버튼/소스 태그 */
-.chip {
+.rag__input {
+  flex: 1;
   border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  cursor: pointer;
-  font-family: inherit;
+  border: 1px solid #ddd;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.chip--ghost {
-  background: #f9fafb;
+.rag__input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.15);
 }
 
-.chip--source {
-  background: #eef2ff;
-  border-color: #c7d2fe;
-  color: #1d4ed8;
-}
-
-/* 전송 버튼 (동그란 원 + 위 화살표) */
-.send-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: none;
-  background: #1377f3;
+/* 버튼 스타일 */
+.btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  background: #f7f7f7;
+  font-size: 0.9rem;
   cursor: pointer;
-  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.35);
-  transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.08s ease;
+  white-space: nowrap;
+  height: 38px;
+  transition: background 0.15s ease, border-color 0.15s ease,
+    transform 0.05s ease;
 }
 
-.send-btn__icon {
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  transform: translateY(-1px);
+.btn--primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
 }
 
-.send-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 12px rgba(37, 99, 235, 0.4);
-}
-
-.send-btn:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 3px 6px rgba(37, 99, 235, 0.3);
-}
-
-.send-btn:disabled {
-  opacity: 0.4;
+.btn:disabled,
+.btn.btn--primary:disabled {
   cursor: default;
-  box-shadow: none;
+  opacity: 0.6;
+  transform: none;
+}
+
+.btn:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+/* 예시 질문 */
+.rag__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.8rem;
+}
+
+.rag__hint-label {
+  color: #888;
+  margin-right: 4px;
+  font-weight: 500;
+}
+
+.rag__chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.rag__chip:hover:not(:disabled) {
+  background: #e0ecff;
+  border-color: #bfdbfe;
+}
+
+/* 결과 영역 */
+.rag__loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.rag__spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #4b5563;
+  animation: rag-spin 0.9s linear infinite;
+}
+
+@keyframes rag-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rag__answer-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.rag__answer-subtitle {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: #777;
+}
+
+.rag__answer-body {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #222;
+  word-break: keep-all;
+}
+
+.rag__answer-body strong {
+  font-weight: 600;
+}
+
+/* 출처 리스트 */
+.rag__sources {
+  margin-top: 14px;
+  border-top: 1px dashed #e5e7eb;
+  padding-top: 10px;
+}
+
+.rag__sources h4 {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.rag__source-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rag__source-item {
+  font-size: 0.85rem;
+}
+
+.rag__source-title {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.rag__source-title:hover {
+  text-decoration: underline;
+}
+
+.rag__source-meta {
+  margin-left: 4px;
+  color: #9ca3af;
+}
+
+/* 초기 안내 */
+.rag__empty {
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px dashed #e5e7eb;
+  background: #f9fafb;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.rag__empty-main {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+.rag__empty-list {
+  margin: 0 0 6px 1.1rem;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.rag__empty-list li {
+  margin-bottom: 2px;
+}
+
+.rag__empty-tip {
+  margin-top: 4px;
+}
+
+.rag__empty-notice {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+/* 에러 메시지 */
+.rag__error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.9rem;
 }
 
 /* 모바일 대응 */
 @media (max-width: 640px) {
-  .rag__shell {
-    height: calc(100vh - 260px); /* 모바일에서 조금 더 여유 */
+  .rag__header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .bubble {
-    max-width: 82%;
+  .rag__input-row {
+    flex-direction: column;
   }
 
-  .rag__input-footer {
-    gap: 4px;
+  .btn {
+    width: 100%;
   }
 }
 </style>

@@ -185,12 +185,12 @@ def main():
              "save_sub_path": "natural_science/chemistry.csv"
         },
         #통계학과
-        "statistics": {
-             "links_func": statistics.get_post_links,
-             "content_func": statistics.get_post_contents,
-             "save_sub_path": "natural_science/statistics.csv"
-        },
-     #생명과학과
+     #    "statistics": {
+     #         "links_func": statistics.get_post_links,
+     #         "content_func": statistics.get_post_contents,
+     #         "save_sub_path": "natural_science/statistics.csv"
+     #    },
+        #생명과학과
         "biomedical_science": {
              "links_func": biomedical_science.get_post_links,
              "content_func": biomedical_science.get_post_contents,
@@ -425,7 +425,7 @@ def main():
     driver = setup_driver()
     if driver is None:
         print("웹 드라이버 설정에 실패하여 크롤링을 종료합니다.")
-        return 
+        return []
 
     all_new_data_list = [] 
 
@@ -489,10 +489,14 @@ def main():
         print(f"\n[CRITICAL ERROR] 메인 프로세스 중단: {e}")
         import traceback
         traceback.print_exc()
+        return []
+    
     finally:
         if driver:
             driver.quit()
             print("\n브라우저를 종료했습니다.")
+
+    return all_new_data_list
 
 if __name__ == "__main__":
     main()

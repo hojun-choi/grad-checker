@@ -338,7 +338,8 @@ CREATE TABLE IF NOT EXISTS gyopil_grad_check (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   
   -- 입학년도별 검색을 위한 인덱스
-  INDEX idx_gyopil_year (entry_year)
+  INDEX idx_gyopil_year (entry_year),
+  CONSTRAINT uk_gyopil_year_title UNIQUE (entry_year, course_title)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =======================================================
@@ -371,5 +372,6 @@ CREATE TABLE IF NOT EXISTS grad_area_reqs (
   
   -- 부모 요건이 삭제되면 상세 영역 요건도 같이 삭제
   CONSTRAINT fk_gar_parent FOREIGN KEY (gyosun_grad_check_id) 
-      REFERENCES gyosun_grad_check(id) ON UPDATE CASCADE ON DELETE CASCADE
+      REFERENCES gyosun_grad_check(id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT uk_grad_area_reqs_unique UNIQUE (gyosun_grad_check_id, competency_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

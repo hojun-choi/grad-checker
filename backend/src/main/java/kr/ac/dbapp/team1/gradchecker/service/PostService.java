@@ -1,4 +1,3 @@
-// src/main/java/kr/ac/dbapp/team1/gradchecker/service/PostService.java
 package kr.ac.dbapp.team1.gradchecker.service;
 
 import kr.ac.dbapp.team1.gradchecker.domain.BoardType;
@@ -53,6 +52,8 @@ public class PostService {
 
     /**
      * 글 목록 (검색 + 정렬 + 페이징)
+     * - 목록 조회에서는 상세한 isMine 여부보다는 데이터 나열이 중요하므로
+     * PostResponse::from (userId 없는 버전)을 사용합니다.
      */
     @Transactional(readOnly = true)
     public Page<PostResponse> searchPosts(PostSearchRequest searchRequest) {
@@ -68,6 +69,9 @@ public class PostService {
 
         int page = Math.max(searchRequest.getPage(), 0);
         int size = searchRequest.getSize() > 0 ? searchRequest.getSize() : 20;
+        
+        // size가 0이면(게시판 종류만 불러올 때) 페이징 에러 방지 위해 1로 처리하되 내용은 무시
+        if (size == 0) size = 1;
 
         Pageable pageable = PageRequest.of(page, size, sort);
 
@@ -77,26 +81,28 @@ public class PostService {
                 pageable
         );
 
-        return postPage.map(PostResponse::from);
+        return postPage.map(post -> PostResponse.from(post, null));
     }
 
     /**
-     * 글 단건 조회 (+조회수 증가, 댓글 포함)
+     * 글 단건 조회 (+조회수 증가, 댓글 포함, 본인 확인)
      */
     @Transactional
-    public PostResponse getPostById(Long postId) {
+    public PostResponse getPostById(Long postId, Long currentUserId) {
         Post post = postRepository.findByIdAndIsDeletedFalse(postId)
                 .orElseThrow(() -> new NoSuchElementException("게시글을 찾을 수 없습니다."));
 
         // 조회수 증가
         post.increaseViewCount();
 
+        // 댓글 조회 및 DTO 변환 (여기서 댓글별 isMine 계산)
         var comments = commentRepository.findByPostAndIsDeletedFalseOrderByCreatedAtAsc(post)
                 .stream()
-                .map(CommentResponse::from)
+                .map(comment -> CommentResponse.from(comment, currentUserId))
                 .toList();
 
-        return PostResponse.from(post, comments);
+        // 게시글 DTO 변환 (여기서 게시글 isMine 계산)
+        return PostResponse.from(post, comments, currentUserId);
     }
 
     /**

@@ -1,4 +1,3 @@
-<!-- src/pages/Board/Write.vue -->
 <template>
   <section class="editor">
     <header class="editor__header">
@@ -11,12 +10,10 @@
     </header>
 
     <form class="editor__form" @submit.prevent="handleSubmit">
-      <!-- 첫 줄: 게시판명 / 제목 / 작성자 표시 -->
       <div class="editor__row">
-        <!-- 게시판명 -->
         <div class="field field--inline field--board">
           <label class="label">게시판명</label>
-          <select v-model="form.category" class="control">
+          <select v-model="form.category" class="control" required>
             <option disabled value="">게시판명을 선택해주세요</option>
             <option
               v-for="cat in categoryOptions"
@@ -28,7 +25,6 @@
           </select>
         </div>
 
-        <!-- 제목 -->
         <div class="field field--inline field--title">
           <div class="field__title-head">
             <label class="label">제목</label>
@@ -40,10 +36,10 @@
             class="control"
             maxlength="100"
             placeholder="제목을 입력해주세요 (100자 이내)"
+            required
           />
         </div>
 
-        <!-- 작성자 표시 -->
         <div class="field field--inline field--author">
           <label class="label">작성자 표시</label>
           <label class="checkbox">
@@ -57,7 +53,6 @@
         </div>
       </div>
 
-      <!-- 내용 -->
       <div class="field">
         <label class="label">내용</label>
         <textarea
@@ -65,17 +60,17 @@
           class="control control--textarea"
           rows="12"
           placeholder="졸업 요건, 시간표, 전과 경험, 수업 후기 등 구체적으로 적어주시면 더 도움이 됩니다."
+          required
         ></textarea>
       </div>
 
-      <!-- 하단 버튼 -->
       <div class="editor__actions">
         <button type="button" class="btn btn--ghost" @click="handleCancel">
           취소
         </button>
 
         <div class="editor__actions-right">
-          <button type="submit" class="btn btn--primary">
+          <button type="submit" class="btn btn--primary" :disabled="isLoading">
             {{ submitLabel }}
           </button>
         </div>
@@ -89,94 +84,129 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../../composables/useAuth.js'
 import { api } from '../../api/api.js'
+import { useToast } from 'vue-toastification' // Toast import
 
 const route = useRoute()
 const router = useRouter()
 const { isAuthenticated } = useAuth()
+const toast = useToast() // Toast instance
 
 const isAuthed = computed(() => isAuthenticated())
-const isEditMode = computed(() => !!route.params.id) // /board/:id/edit 에서 재사용
+const isEditMode = computed(() => !!route.params.id) // /board/:id/edit
 
-const categoryOptions = [
-  { value: 'grad',   label: '졸업 요건' },
-  { value: 'course', label: '수강 / 시간표' },
-  { value: 'major',  label: '전과 / 복수전공' },
-  { value: 'free',   label: '자유글' },
-]
+// 상태 관리
+const isLoading = ref(false)
+const categoryOptions = ref([]) // 서버에서 받아올 게시판 목록
 
 const form = ref({
-  category: '',
+  category: '', // PostRequest.boardName 대응
   title: '',
   content: '',
 })
 
-// 익명 여부
+// 익명 여부 (PostRequest.anonymous 대응)
 const isAnonymous = ref(true)
 
 const pageTitle = computed(() =>
   isEditMode.value ? '게시글 수정' : '새 글 쓰기'
 )
 
-const submitLabel = computed(() =>
-  isEditMode.value ? '수정 완료' : '등록하기'
-)
+const submitLabel = computed(() => {
+  if (isLoading.value) return '처리 중...'
+  return isEditMode.value ? '수정 완료' : '등록하기'
+})
 
-onMounted(() => {
+// 게시판 목록 불러오기
+const fetchBoardTypes = async () => {
+  try {
+    const res = await api.get('/board/posts', {
+      params: { page: 0, size: 0 }
+    })
+    if (res.data?.boardTypes) {
+      categoryOptions.value = res.data.boardTypes.map(bt => ({
+        label: bt.boardName,
+        value: bt.boardName
+      }))
+    }
+  } catch (error) {
+    console.error('게시판 종류 불러오기 실패:', error)
+    toast.error('게시판 정보를 불러오는데 실패했습니다.')
+  }
+}
+
+// 수정 시 기존 글 정보 불러오기
+const fetchPostDetail = async (id) => {
+  try {
+    const res = await api.get(`/board/posts/${id}`)
+    const data = res.data
+    form.value.category = data.category
+    form.value.title = data.title
+    form.value.content = data.content
+    isAnonymous.value = data.anonymous
+  } catch (error) {
+    console.error('게시글 정보 불러오기 실패:', error)
+    toast.error('게시글 정보를 불러오지 못했습니다.')
+    router.push('/board')
+  }
+}
+
+onMounted(async () => {
   if (!isAuthed.value) {
-    alert('로그인 후 글쓰기를 이용할 수 있습니다.')
+    toast.warning('로그인 후 글쓰기를 이용할 수 있습니다.')
     router.push('/board')
     return
   }
 
+  // 게시판 종류 조회
+  await fetchBoardTypes()
+
+  // 수정 모드라면 상세 내용 조회
   if (isEditMode.value) {
-    const id = route.params.id
-    // TODO: 여기서 GET /api/board/:id 호출해서 form/isAnonymous 채우기
-    form.value = {
-      category: 'grad',
-      title: `예시 제목 (글 ID: ${id})`,
-      content: 'TODO: 서버에서 게시글 내용을 불러와서 채워 넣으세요.',
-    }
-    // 예시: 서버에서 anonymous 값 받아왔다고 가정
-    isAnonymous.value = true
+    await fetchPostDetail(route.params.id)
   }
 })
 
 async function handleSubmit() {
+  // 유효성 검사 - Warning Toast
   if (!form.value.category) {
-    alert('게시판명을 선택해주세요.')
+    toast.warning('게시판명을 선택해주세요.')
     return
   }
   if (!form.value.title.trim()) {
-    alert('제목을 입력해주세요.')
+    toast.warning('제목을 입력해주세요.')
     return
   }
   if (!form.value.content.trim()) {
-    alert('내용을 입력해주세요.')
+    toast.warning('내용을 입력해주세요.')
     return
   }
 
   const payload = {
-    category: form.value.category,
+    boardName: form.value.category,
     title: form.value.title.trim(),
     content: form.value.content.trim(),
-    anonymous: isAnonymous.value, // 백엔드에서 true면 '익명'으로 처리
+    anonymous: isAnonymous.value,
   }
 
   try {
+    isLoading.value = true
     if (isEditMode.value) {
+      // 수정
       const id = route.params.id
-      // TODO: PUT /api/board/{id}
-      console.log('EDIT POST', id, payload)
-      alert('수정된 걸로 가정하고 목록으로 이동합니다.')
+      await api.put(`/board/posts/${id}`, payload)
+      toast.success('게시글이 수정되었습니다.')
     } else {
-      // POST /api/board/posts
+      // 등록
       await api.post('/board/posts', payload)
-      alert('게시글이 등록되었습니다.')
+      toast.success('게시글이 등록되었습니다.')
     }
+    // 목록으로 이동
     router.push('/board')
   } catch (error) {
     console.error('글 저장 실패:', error)
-    alert('글 저장 중 오류가 발생했습니다.')
+    toast.error('글 저장 중 오류가 발생했습니다.')
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -249,7 +279,7 @@ function handleCancel() {
 }
 
 .field--author {
-  max-width: 260px;
+  max-width: 150px;
 }
 
 .field__title-head {
@@ -264,13 +294,6 @@ function handleCancel() {
   color: #333;
 }
 
-.label__sub {
-  margin-left: 4px;
-  font-weight: 400;
-  font-size: 12px;
-  color: #888;
-}
-
 .control {
   border-radius: 8px;
   border: 1px solid #ddd;
@@ -279,6 +302,7 @@ function handleCancel() {
   outline: none;
   width: 100%;
   box-sizing: border-box;
+  background-color: #fff;
 }
 
 .control:focus {
@@ -306,10 +330,16 @@ function handleCancel() {
   gap: 6px;
   font-size: 13px;
   color: #444;
+  height: 38px; /* input height와 유사하게 */
+  padding-left: 4px;
 }
 
 .checkbox input[type='checkbox'] {
   margin: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: #1f7aec;
+  cursor: pointer;
 }
 
 /* 하단 버튼들 */
@@ -334,6 +364,16 @@ function handleCancel() {
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  filter: brightness(0.95);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn--primary {
@@ -357,6 +397,11 @@ function handleCancel() {
   .field--author {
     max-width: 100%;
   }
+  
+  .checkbox {
+    height: auto;
+    padding: 8px 0;
+  }
 }
 
 @media (max-width: 640px) {
@@ -368,6 +413,10 @@ function handleCancel() {
   .editor__actions-right {
     width: 100%;
     justify-content: flex-end;
+  }
+  
+  .editor__actions-right .btn {
+    width: 100%;
   }
 
   .btn {

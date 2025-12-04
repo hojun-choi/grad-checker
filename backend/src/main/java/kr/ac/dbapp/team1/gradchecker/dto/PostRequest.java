@@ -1,6 +1,6 @@
-// src/main/java/kr/ac/dbapp/team1/gradchecker/dto/PostRequest.java
 package kr.ac.dbapp.team1.gradchecker.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias; // 추가
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,10 +9,6 @@ import lombok.Setter;
 @Setter
 public class PostRequest {
 
-    /**
-     * 어떤 게시판에 쓸 건지 (예: "졸업", "시간표" 등)
-     * - board_types.board_name 과 매칭
-     */
     @NotBlank
     private String boardName;
 
@@ -22,5 +18,7 @@ public class PostRequest {
     @NotBlank
     private String content;
 
+    // [수정] 프론트엔드가 'anonymous' 또는 'isAnonymous' 둘 중 뭘 보내도 처리 가능하게 함
+    @JsonAlias("isAnonymous") 
     private boolean anonymous;
 }

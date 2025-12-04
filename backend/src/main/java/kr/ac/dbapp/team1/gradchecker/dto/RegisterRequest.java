@@ -14,8 +14,6 @@ import lombok.AllArgsConstructor;
  *  - username   : username (실제 이름)
  *  - student_id : studentId
  *  - major_id   : majorId
- *
- * (email은 선택값으로 두고 싶으면 유지)
  */
 @Getter
 @Setter

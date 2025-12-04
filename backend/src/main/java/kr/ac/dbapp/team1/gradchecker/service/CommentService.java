@@ -1,9 +1,14 @@
+// src/main/java/kr/ac/dbapp/team1/gradchecker/service/CommentService.java
 package kr.ac.dbapp.team1.gradchecker.service;
 
 import kr.ac.dbapp.team1.gradchecker.domain.Comment;
+import kr.ac.dbapp.team1.gradchecker.domain.Post;
+import kr.ac.dbapp.team1.gradchecker.domain.User;
 import kr.ac.dbapp.team1.gradchecker.dto.CommentRequest;
 import kr.ac.dbapp.team1.gradchecker.repo.CommentRepository;
 import kr.ac.dbapp.team1.gradchecker.repo.PostRepository;
+import kr.ac.dbapp.team1.gradchecker.repo.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,90 +16,80 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.NoSuchElementException;
 
-/**
- * 댓글 작성, 수정, 삭제 비즈니스 로직을 처리하는 서비스입니다.
- */
 @Service
+@RequiredArgsConstructor
 public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
-
-    public CommentService(CommentRepository commentRepository, PostRepository postRepository) {
-        this.commentRepository = commentRepository;
-        this.postRepository = postRepository;
-    }
+    private final UserRepository userRepository;
 
     /**
-     * @설명: 새로운 댓글을 저장하고, 게시글의 댓글 수를 1 증가시킵니다.
-     * @API: [ ] 댓글 작성 api 구현
+     * 댓글 작성
      */
     @Transactional
-    public Long createComment(Long postId, CommentRequest request, Long authenticatedUserId) {
-        // 1. 게시글 존재 여부 확인 (댓글이 달릴 게시글이 있어야 함)
-        if (!postRepository.existsById(postId)) {
-            throw new NoSuchElementException("댓글을 작성할 게시글을 찾을 수 없습니다.");
+    public Long createComment(Long postId, CommentRequest request, Long userId) {
+        Post post = postRepository.findByIdAndIsDeletedFalse(postId)
+                .orElseThrow(() -> new NoSuchElementException("게시글을 찾을 수 없습니다."));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
+
+        Comment parent = null;
+        if (request.getParentCommentId() != null) {
+            parent = commentRepository.findByIdAndIsDeletedFalse(request.getParentCommentId())
+                    .orElseThrow(() -> new NoSuchElementException("부모 댓글을 찾을 수 없습니다."));
         }
 
-        // 2. 댓글 엔티티 생성
-        Comment newComment = Comment.builder()
-                .postId(postId)
-                .userId(authenticatedUserId)
+        Comment comment = Comment.builder()
+                .post(post)
+                .user(user)
+                .parentComment(parent)
                 .content(request.getContent())
-                .parentCommentId(request.getParentCommentId())
+                .isAnonymous(request.isAnonymous())
+                .isDeleted(false)
                 .build();
 
-        Comment savedComment = commentRepository.save(newComment);
+        commentRepository.save(comment);
+        post.increaseCommentCount();
 
-        // 3. 비즈니스 로직: 게시글의 댓글 수 증가 (Post 엔티티에 로직 추가 필요)
-        postRepository.findById(postId).ifPresent(post -> {
-            post.incrementCommentCount(); // Post 엔티티에 구현된 메서드 사용
-        });
-
-        return savedComment.getId();
+        return comment.getId();
     }
 
     /**
-     * @설명: 댓글을 수정합니다. (권한 확인 필수)
-     * @API: [ ] 댓글 수정 api 구현
+     * 댓글 수정
      */
     @Transactional
-    public void updateComment(Long commentId, CommentRequest request, Long authenticatedUserId) {
-        Comment comment = commentRepository.findById(commentId)
-                .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new NoSuchElementException("수정할 댓글을 찾을 수 없습니다."));
+    public void updateComment(Long commentId, CommentRequest request, Long userId) {
+        Comment comment = commentRepository.findByIdAndIsDeletedFalse(commentId)
+                .orElseThrow(() -> new NoSuchElementException("댓글을 찾을 수 없습니다."));
 
-        // 권한 확인
-        if (!comment.getUserId().equals(authenticatedUserId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "댓글을 수정할 권한이 없습니다.");
+        // 🔐 작성자 본인 확인 (User.userId)
+        if (!comment.getUser().getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인이 작성한 댓글만 수정할 수 있습니다.");
         }
 
-        comment.update(request.getContent());
+        comment.setContent(request.getContent());
+        comment.setIsAnonymous(request.isAnonymous());
     }
 
     /**
-     * @설명: 댓글을 논리적으로 삭제 처리합니다. (권한 확인 필수)
-     * @API: [ ] 댓글 삭제 api 구현
+     * 댓글 삭제 (soft delete)
      */
     @Transactional
-    public void deleteComment(Long commentId, Long authenticatedUserId) {
-        Comment comment = commentRepository.findById(commentId).orElse(null);
+    public void deleteComment(Long commentId, Long userId) {
+        Comment comment = commentRepository.findByIdAndIsDeletedFalse(commentId)
+                .orElseThrow(() -> new NoSuchElementException("댓글을 찾을 수 없습니다."));
 
-        if (comment == null || comment.isDeleted()) {
-            throw new NoSuchElementException("삭제할 댓글을 찾을 수 없습니다.");
+        // 🔐 작성자 본인 확인
+        if (!comment.getUser().getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인이 작성한 댓글만 삭제할 수 있습니다.");
         }
 
-        // 권한 확인
-        if (!comment.getUserId().equals(authenticatedUserId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "댓글을 삭제할 권한이 없습니다.");
+        if (!Boolean.TRUE.equals(comment.getIsDeleted())) {
+            comment.setIsDeleted(true);
+            Post post = comment.getPost();
+            post.decreaseCommentCount();
         }
-
-        // 논리적 삭제
-        comment.markAsDeleted();
-
-        // 💡 비즈니스 로직: 게시글의 댓글 수 감소 (Post 엔티티에 로직 추가 필요)
-        postRepository.findById(comment.getPostId()).ifPresent(post -> {
-            post.decrementCommentCount();
-        });
     }
 }

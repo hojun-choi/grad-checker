@@ -1,15 +1,17 @@
+// src/main/java/kr/ac/dbapp/team1/gradchecker/dto/LoginRequest.java
 package kr.ac.dbapp.team1.gradchecker.dto;
 
-/**
- * 로그인 요청 DTO
- * 
- * 프론트에서 보내는 JSON:
- * {
- *   "loginId": "hojun123",
- *   "password": "pw123456"
- * }
- */
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
+
 public record LoginRequest(
+
+        // 프론트에서 오는 JSON 키가 "username" 이므로 이렇게 매핑
+        @NotBlank
+        @JsonProperty("username")
         String loginId,
+
+        @NotBlank
         String password
-) {}
+) {
+}

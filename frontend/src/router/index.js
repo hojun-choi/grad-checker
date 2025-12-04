@@ -18,7 +18,6 @@ import BoardWrite from '../pages/Board/Write.vue'
 import BoardDetail from '../pages/Board/Detail.vue'
 import Schedule from '../pages/Schedule/index.vue'
 import Friends from '../pages/Friends/index.vue'
-import Rag from '../pages/Rag/index.vue'
 
 const routes = [
   // 메인

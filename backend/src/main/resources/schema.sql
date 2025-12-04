@@ -181,6 +181,7 @@ CREATE TABLE IF NOT EXISTS lecture_timetable (
   section_no VARCHAR(10) NULL,        -- sectionNo
   instructor_name VARCHAR(100) NULL,  -- instructorName
   department_name VARCHAR(100) NULL,  -- departmentName (개설 학과)
+  domain VARCHAR(200) NULL,           -- domain(교과영역)
   
   -- 학점 및 시간 정보
   course_credits DOUBLE NOT NULL DEFAULT 0.0, -- credit.courseCredits
@@ -248,4 +249,127 @@ CREATE TABLE IF NOT EXISTS lecture_eligibility (
 
   -- 중복 방지
   CONSTRAINT uk_lecture_eligibility UNIQUE (lecture_id, department_name, category_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =======================================================
+-- 유저 시간표 (user_timetable)
+-- =======================================================
+CREATE TABLE IF NOT EXISTS user_timetable (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  year INT NOT NULL,              -- 학년도 (예: 2025)
+  semester VARCHAR(20) NOT NULL,  -- 학기 (예: "1학기")
+  timetable_name VARCHAR(50) NOT NULL, -- 시간표 이름
+  
+  -- 1: 대표 시간표, 0: 일반 시간표
+  -- (같은 user_id, year, semester 내에서는 하나의 is_main만 1이어야 함 - 앱 로직 처리)
+  is_main TINYINT(1) NOT NULL DEFAULT 0, 
+  
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  -- 유저가 삭제되면 시간표도 자동 삭제
+  CONSTRAINT fk_user_timetable_user FOREIGN KEY (user_id) 
+      REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE,
+  
+  -- 자주 조회하는 조건에 대한 인덱스
+  INDEX idx_user_tt_filter (user_id, year, semester)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =======================================================
+-- 유저 시간표 상세 - 강의 매핑 (user_timetable_course)
+-- =======================================================
+CREATE TABLE IF NOT EXISTS user_timetable_course (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_timetable_id BIGINT NOT NULL,    -- user_timetable의 id
+  lecture_timetable_id BIGINT NOT NULL, -- lecture_timetable의 id
+  
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  -- 시간표가 삭제되면 안에 담긴 강의 정보도 삭제
+  CONSTRAINT fk_utc_timetable FOREIGN KEY (user_timetable_id) 
+      REFERENCES user_timetable(id) ON UPDATE CASCADE ON DELETE CASCADE,
+      
+  -- 원본 강의가 삭제되면 매핑도 삭제
+  CONSTRAINT fk_utc_lecture FOREIGN KEY (lecture_timetable_id) 
+      REFERENCES lecture_timetable(id) ON UPDATE CASCADE ON DELETE CASCADE,
+
+  -- 한 시간표에 동일 강의 중복 등록 방지
+  CONSTRAINT uk_utc_duplicate UNIQUE (user_timetable_id, lecture_timetable_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =======================================================
+-- 졸업요건 - 전공 (major_grad_check)
+-- =======================================================
+CREATE TABLE IF NOT EXISTS major_grad_check (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  entry_year INT NOT NULL,        -- 입학년도 (학번 기준)
+  major_id BIGINT NOT NULL,       -- major 테이블의 id
+  
+  major_foundation DOUBLE NOT NULL DEFAULT 0.0, -- 전공기초 (전기)
+  major_required DOUBLE NOT NULL DEFAULT 0.0,   -- 전공필수 (전필)
+  major_elective DOUBLE NOT NULL DEFAULT 0.0,   -- 전공선택 (전선)
+  required_all DOUBLE NOT NULL DEFAULT 0.0,     -- 총 졸업 이수 학점
+  
+  additional_requirements VARCHAR(100) NOT NULL DEFAULT '', -- 졸업논문, 시험 등
+  
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  -- major 테이블 참조
+  CONSTRAINT fk_mgc_major FOREIGN KEY (major_id) 
+      REFERENCES major(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+      
+  -- 같은 학과, 같은 입학년도에 중복 요건 등록 방지
+  CONSTRAINT uk_mgc_major_year UNIQUE (major_id, entry_year)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =======================================================
+-- 졸업요건 - 교양필수 (gyopil_grad_check)
+-- =======================================================
+CREATE TABLE IF NOT EXISTS gyopil_grad_check (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  entry_year INT NOT NULL,            -- 입학년도
+  course_title VARCHAR(200) NOT NULL, -- 필수 과목명 (예: '채플', '글쓰기')
+  course_credits DOUBLE NOT NULL DEFAULT 0.0, -- 인정 학점
+  
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  
+  -- 입학년도별 검색을 위한 인덱스
+  INDEX idx_gyopil_year (entry_year)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =======================================================
+-- 졸업요건 - 교양선택 부모 (gyosun_grad_check)
+-- =======================================================
+CREATE TABLE IF NOT EXISTS gyosun_grad_check (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  entry_year INT NOT NULL,                -- 입학년도
+  total_credit_min DOUBLE NOT NULL DEFAULT 0.0,       -- 교선 총 이수 학점 (예: 9학점)
+  christianity_credit_min DOUBLE NOT NULL DEFAULT 0.0, -- 기독교 필수 학점
+  
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  
+  -- 해당 입학년도에는 하나의 규칙만 존재
+  CONSTRAINT uk_gyosun_year UNIQUE (entry_year)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =======================================================
+-- 졸업요건 - 교양선택 영역별 조건 (grad_area_reqs)
+-- =======================================================
+CREATE TABLE IF NOT EXISTS grad_area_reqs (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  gyosun_grad_check_id BIGINT NOT NULL,  -- 부모 테이블 ID
+  competency_name VARCHAR(100) NOT NULL, -- 영역명 (예: '창의/융합')
+  group_min_count INT NOT NULL DEFAULT 0, -- 최소 이수 과목 수
+  
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  
+  -- 부모 요건이 삭제되면 상세 영역 요건도 같이 삭제
+  CONSTRAINT fk_gar_parent FOREIGN KEY (gyosun_grad_check_id) 
+      REFERENCES gyosun_grad_check(id) ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

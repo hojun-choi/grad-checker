@@ -1,67 +1,66 @@
+// src/main/java/kr/ac/dbapp/team1/gradchecker/domain/Comment.java
 package kr.ac.dbapp.team1.gradchecker.domain;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
-//comments테이블
 @Entity
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "comments")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "comment_id")
     private Long id;
 
-    @Column(name = "post_id", nullable = false)
-    private Long postId;
+    // 어떤 글에 달린 댓글인지
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    // 작성자
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(name = "parent_comment_id")
-    private Long parentCommentId; // 대댓글 구현을 위한 부모 ID
+    // 부모 댓글 (대댓글)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_comment_id")
+    private Comment parentComment;
 
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    @Lob
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    @Builder.Default
+    @Column(name = "is_anonymous", nullable = false)
+    private Boolean isAnonymous = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Builder.Default
     @Column(name = "is_deleted", nullable = false)
-    private boolean isDeleted = false;
+    private Boolean isDeleted = false;
 
-    @Builder
-    public Comment(Long postId, Long userId, String content, Long parentCommentId) {
-        this.postId = postId;
-        this.userId = userId;
-        this.content = content;
-        this.parentCommentId = parentCommentId;
-        this.createdAt = LocalDateTime.now();
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
-    //댓글 내용 수정
-    public void update(String content) {
-        this.content = content;
+    @PreUpdate
+    protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
-    }
-
-    //댓글 삭제
-    public void markAsDeleted() {
-        this.isDeleted = true;
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    public boolean isDeleted() {
-        return this.isDeleted;
     }
 }

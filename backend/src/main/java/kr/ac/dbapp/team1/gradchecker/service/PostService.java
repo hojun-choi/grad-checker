@@ -1,118 +1,138 @@
+// src/main/java/kr/ac/dbapp/team1/gradchecker/service/PostService.java
 package kr.ac.dbapp.team1.gradchecker.service;
 
 import kr.ac.dbapp.team1.gradchecker.domain.BoardType;
 import kr.ac.dbapp.team1.gradchecker.domain.Post;
-import kr.ac.dbapp.team1.gradchecker.dto.PostRequest;
-import kr.ac.dbapp.team1.gradchecker.dto.PostResponse;
-import kr.ac.dbapp.team1.gradchecker.dto.PostSearchRequest;
-import kr.ac.dbapp.team1.gradchecker.repo.BoardTypeRepository;
+import kr.ac.dbapp.team1.gradchecker.domain.User;
+import kr.ac.dbapp.team1.gradchecker.dto.*;
+import kr.ac.dbapp.team1.gradchecker.repo.CommentRepository;
 import kr.ac.dbapp.team1.gradchecker.repo.PostRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import kr.ac.dbapp.team1.gradchecker.repo.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 import java.util.NoSuchElementException;
 
-/**
- * 게시글 관련 비즈니스 로직(조회, 저장, 수정, 삭제, 검색)을 처리하는 서비스입니다.
- */
 @Service
+@RequiredArgsConstructor
 public class PostService {
 
     private final PostRepository postRepository;
-    private final BoardTypeRepository boardTypeRepository;
+    private final BoardTypeService boardTypeService;
+    private final CommentRepository commentRepository;
+    private final UserRepository userRepository;
 
-    public PostService(PostRepository postRepository,
-                       BoardTypeRepository boardTypeRepository) {
-        this.postRepository = postRepository;
-        this.boardTypeRepository = boardTypeRepository;
-    }
-
-    // 글 작성 api
+    /**
+     * 글 작성
+     */
     @Transactional
-    public Long createPost(PostRequest request, Long authenticatedUserId) {
+    public Long createPost(PostRequest request, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다."));
 
-        BoardType boardType = boardTypeRepository.findById(request.getBoardTypeId())
-                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 게시판입니다."));
+        BoardType boardType = boardTypeService.getByBoardNameOrThrow(request.getBoardName());
 
         Post post = Post.builder()
-                .userId(authenticatedUserId)
+                .user(user)
                 .boardType(boardType)
                 .title(request.getTitle())
                 .content(request.getContent())
+                .isAnonymous(request.isAnonymous())
+                .commentCount(0)
+                .viewCount(0)
+                .isDeleted(false)
                 .build();
 
-        Post savedPost = postRepository.save(post);
-        return savedPost.getId();
+        postRepository.save(post);
+        return post.getId();
     }
 
-    // 글 조회 api
-    @Transactional
-    public PostResponse getPostById(Long postId) {
-        // isDeleted=false인 게시글만 조회
-        Post post = postRepository.findById(postId)
-                .filter(p -> !p.isDeleted()) // 삭제되지 않은 글만 필터링
-                .orElseThrow(() -> new NoSuchElementException("조회할 게시글을 찾을 수 없습니다."));
-
-        // 조회수 증가
-        post.incrementViewCount();
-
-        // Entity -> Response DTO
-        return PostResponse.from(post);
-    }
-
-    // 글 수정 api
-    @Transactional
-    public void updatePost(Long postId, PostRequest request, Long authenticatedUserId) {
-        Post post = postRepository.findByIdAndIsDeletedFalse(postId);
-
-        if (post == null) {
-            throw new NoSuchElementException("수정할 게시글을 찾을 수 없습니다.");
-        }
-
-        // 작성자 본인인지 확인
-        if (!post.getUserId().equals(authenticatedUserId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "게시글을 수정할 권한이 없습니다.");
-        }
-
-        BoardType boardType = boardTypeRepository.findById(request.getBoardTypeId())
-                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 게시판입니다."));
-
-        // 게시글 내용 업데이트 (Post 엔티티의 update 메서드 사용)
-        post.update(request.getTitle(), request.getContent(), boardType);
-    }
-
-    // 글 삭제 api
-    @Transactional
-    public void deletePost(Long postId, Long authenticatedUserId) {
-        Post post = postRepository.findById(postId).orElse(null);
-
-        if (post == null || post.isDeleted()) {
-            // 이미 삭제되었거나 존재하지 않는 경우
-            return;
-        }
-
-        // 작성자 본인인지 확인
-        if (!post.getUserId().equals(authenticatedUserId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "게시글을 삭제할 권한이 없습니다.");
-        }
-
-        // 논리적 삭제 처리
-        post.markAsDeleted();
-    }
-
-    // 메인화면 복합 조회 API 구현
+    /**
+     * 글 목록 (검색 + 정렬 + 페이징)
+     */
     @Transactional(readOnly = true)
     public Page<PostResponse> searchPosts(PostSearchRequest searchRequest) {
-        Pageable pageable = searchRequest.toPageable();
 
-        // Custom Repository 메서드 호출
-        Page<Post> postsPage = postRepository.searchPosts(searchRequest, pageable);
+        String sortBy = searchRequest.getSortBy() == null ? "latest" : searchRequest.getSortBy();
+        Sort sort;
 
-        // 엔티티 Page 객체를 Response DTO Page 객체로 변환
-        return postsPage.map(PostResponse::from);
+        if ("popular".equalsIgnoreCase(sortBy)) {
+            sort = Sort.by(Sort.Direction.DESC, "viewCount");
+        } else {
+            sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        }
+
+        int page = Math.max(searchRequest.getPage(), 0);
+        int size = searchRequest.getSize() > 0 ? searchRequest.getSize() : 20;
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Post> postPage = postRepository.search(
+                searchRequest.getBoardName(),
+                searchRequest.getKeyword(),
+                pageable
+        );
+
+        return postPage.map(PostResponse::from);
+    }
+
+    /**
+     * 글 단건 조회 (+조회수 증가, 댓글 포함)
+     */
+    @Transactional
+    public PostResponse getPostById(Long postId) {
+        Post post = postRepository.findByIdAndIsDeletedFalse(postId)
+                .orElseThrow(() -> new NoSuchElementException("게시글을 찾을 수 없습니다."));
+
+        // 조회수 증가
+        post.increaseViewCount();
+
+        var comments = commentRepository.findByPostAndIsDeletedFalseOrderByCreatedAtAsc(post)
+                .stream()
+                .map(CommentResponse::from)
+                .toList();
+
+        return PostResponse.from(post, comments);
+    }
+
+    /**
+     * 글 수정
+     */
+    @Transactional
+    public void updatePost(Long postId, PostRequest request, Long userId) {
+        Post post = postRepository.findByIdAndIsDeletedFalse(postId)
+                .orElseThrow(() -> new NoSuchElementException("게시글을 찾을 수 없습니다."));
+
+        // 🔐 작성자 본인 확인
+        if (!post.getUser().getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인이 작성한 글만 수정할 수 있습니다.");
+        }
+
+        BoardType boardType = boardTypeService.getByBoardNameOrThrow(request.getBoardName());
+
+        post.setBoardType(boardType);
+        post.setTitle(request.getTitle());
+        post.setContent(request.getContent());
+        post.setIsAnonymous(request.isAnonymous());
+    }
+
+    /**
+     * 글 삭제 (soft delete)
+     */
+    @Transactional
+    public void deletePost(Long postId, Long userId) {
+        Post post = postRepository.findByIdAndIsDeletedFalse(postId)
+                .orElseThrow(() -> new NoSuchElementException("게시글을 찾을 수 없습니다."));
+
+        // 🔐 작성자 본인 확인
+        if (!post.getUser().getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인이 작성한 글만 삭제할 수 있습니다.");
+        }
+
+        post.setIsDeleted(true);
     }
 }

@@ -2,8 +2,8 @@ import json
 import os
 
 # 입력 파일명과 출력 파일명 설정
-INPUT_FILE = './backend/src/main/resources/data/timetable_transformed.jsonl'
-OUTPUT_FILE = './backend/src/main/resources/data_lectures.sql'
+INPUT_FILE = './backend/src/main/resources/data/timetable_transformed2.jsonl'
+OUTPUT_FILE = './backend/src/main/resources/data_lectures2.sql'
 
 
 def parse_term_code(term_code):
@@ -83,24 +83,23 @@ def main():
 
                 credit = data.get('credit', {})
 
-                # ⚠️ 여기가 핵심 수정 부분
-                #   - 더 이상 timetable_id 컬럼을 사용하지 않음
-                #   - id 컬럼 하나만 사용하고, 거기에 timetableId를 그대로 넣음
+                # ⚠️ 수정된 부분: domain 컬럼 추가
                 sql_timetable = (
                     "INSERT IGNORE INTO lecture_timetable "
                     "(id, year, semester, course_code, course_title, section_no, "
-                    "instructor_name, department_name, engineering_certification, "
+                    "instructor_name, department_name, domain, engineering_certification, "  # domain 추가됨
                     "class_type_info, taking_note, target_students, capacity, "
                     "enrolled_count, lecture_hours, course_credits, design_credits) "
                     "VALUES ("
-                    f"{timetable_id}, "                          # id (PK로 사용)
-                    f"{year}, "                                  # year
-                    f"{escape_sql(semester)}, "                  # semester
+                    f"{timetable_id}, "                              # id
+                    f"{year}, "                                      # year
+                    f"{escape_sql(semester)}, "                      # semester
                     f"{escape_sql(data.get('courseCode'))}, "
                     f"{escape_sql(data.get('courseTitle'))}, "
                     f"{escape_sql(data.get('sectionNo'))}, "
                     f"{escape_sql(data.get('instructorName'))}, "
                     f"{escape_sql(data.get('departmentName'))}, "
+                    f"{escape_sql(data.get('domain'))}, "            # domain 값 추가
                     f"{escape_sql(data.get('engineeringCertification'))}, "
                     f"{escape_sql(data.get('classTypeInfo'))}, "
                     f"{escape_sql(data.get('takingNote'))}, "

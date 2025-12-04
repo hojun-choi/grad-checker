@@ -4,7 +4,7 @@ import axios from 'axios'
 export const api = axios.create({
   baseURL: '/api',
   withCredentials: true,      // ✅ 세션 쿠키 보내기
-  timeout: 10000,
+  timeout: 60000,
 })
 
 function getCookie(name) {

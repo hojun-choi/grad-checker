@@ -1,19 +1,18 @@
+// src/main/java/kr/ac/dbapp/team1/gradchecker/dto/BoardTypeResponse.java
 package kr.ac.dbapp.team1.gradchecker.dto;
 
 import kr.ac.dbapp.team1.gradchecker.domain.BoardType;
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor
 public class BoardTypeResponse {
-    private Long boardTypeId;
+
+    private Long id;
     private String boardName;
 
-    public static BoardTypeResponse from(BoardType boardType) {
-        return BoardTypeResponse.builder()
-                .boardTypeId(boardType.getId())
-                .boardName(boardType.getBoardName())
-                .build();
+    public static BoardTypeResponse from(BoardType bt) {
+        return new BoardTypeResponse(bt.getId(), bt.getBoardName());
     }
 }

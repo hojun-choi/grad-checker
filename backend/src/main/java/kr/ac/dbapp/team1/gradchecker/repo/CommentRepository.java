@@ -1,13 +1,18 @@
+// src/main/java/kr/ac/dbapp/team1/gradchecker/repo/CommentRepository.java
 package kr.ac.dbapp.team1.gradchecker.repo;
 
 import kr.ac.dbapp.team1.gradchecker.domain.Comment;
+import kr.ac.dbapp.team1.gradchecker.domain.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
-//댓글 엔티티 - 데이터베이스 접근
-@Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {
-    List<Comment> findByPostIdAndIsDeletedFalseOrderByCreatedAtAsc(Long postId);
+
+    // CommentService 에서 사용하는 메서드
+    Optional<Comment> findByIdAndIsDeletedFalse(Long id);
+
+    // PostService.getPostById() 에서 댓글 리스트 조회용
+    List<Comment> findByPostAndIsDeletedFalseOrderByCreatedAtAsc(Post post);
 }

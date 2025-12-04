@@ -1,3 +1,4 @@
+// src/main/java/kr/ac/dbapp/team1/gradchecker/service/AuthService.java
 package kr.ac.dbapp.team1.gradchecker.service;
 
 import kr.ac.dbapp.team1.gradchecker.domain.User;
@@ -23,7 +24,7 @@ public class AuthService {
 
     /**
      * [아이디 중복확인] loginId 사용 가능 여부
-     *  - 컨트롤러: GET /auth/check-login-id?loginId=...
+     *  - 컨트롤러: GET /api/auth/check-login-id?loginId=...
      */
     @Transactional(readOnly = true)
     public boolean isLoginIdAvailable(String loginId) {
@@ -70,11 +71,10 @@ public class AuthService {
             throw new IllegalArgumentException("이미 사용 중인 로그인 ID입니다.");
         }
 
-        // 2. 비밀번호 해싱
+        // 2. 비밀번호 해싱 (Bcrypt 등)
         String hashedPassword = passwordEncoder.encode(request.getPassword());
 
         // 3. User 엔티티 생성 및 DB 저장
-        //    (User 엔티티에 studentId, majorId 필드가 있다고 가정)
         User newUser = User.builder()
                 .loginId(loginId.trim())
                 .username(username.trim())
@@ -85,6 +85,32 @@ public class AuthService {
                 .build();
 
         return userRepository.save(newUser);
+    }
+
+    /**
+     * [로그인] 아이디/비밀번호 직접 검증
+     *  - loginId로 유저를 찾고, passwordEncoder.matches(raw, hashed)로 검사.
+     *  - 실패 시 IllegalArgumentException 발생.
+     */
+    @Transactional(readOnly = true)
+    public User authenticate(String loginId, String rawPassword) {
+        if (loginId == null || rawPassword == null) {
+            throw new IllegalArgumentException("아이디 또는 비밀번호가 올바르지 않습니다.");
+        }
+
+        User user = userRepository.findByLoginId(loginId.trim())
+                .orElseThrow(() -> new IllegalArgumentException("아이디 또는 비밀번호가 올바르지 않습니다."));
+
+        // 🔐 Bcrypt 등 해시 비교
+        if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("아이디 또는 비밀번호가 올바르지 않습니다.");
+        }
+
+        if (Boolean.TRUE.equals(user.getIsDeleted())) {
+            throw new IllegalArgumentException("비활성화된 계정입니다.");
+        }
+
+        return user;
     }
 
     /**

@@ -1,11 +1,15 @@
+// src/main/java/kr/ac/dbapp/team1/gradchecker/repo/BoardTypeRepository.java
 package kr.ac.dbapp.team1.gradchecker.repo;
 
 import kr.ac.dbapp.team1.gradchecker.domain.BoardType;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-import java.util.List;
 
-@Repository
+import java.util.List;
+import java.util.Optional;
+
 public interface BoardTypeRepository extends JpaRepository<BoardType, Long> {
-    List<BoardType> findByIsDeletedFalse();
+
+    List<BoardType> findAllByIsDeletedFalseOrderByIdAsc();
+
+    Optional<BoardType> findByBoardNameAndIsDeletedFalse(String boardName);
 }

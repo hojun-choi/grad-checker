@@ -1,26 +1,26 @@
 [
 {
   "type": "ge_elective",
-  "entry_year": [2020,2021, 2022],
+  "entry_year": [2020,2021,2022],
   "requirements": {
     "total_credit_min": 12,
     "christianity_credit_min": 4
   },
   "areas": [
     {
-      "competency": "기독교",
+      "competency": "기독교과목",
       "group_min_count": 0
     },
     {
-      "competency": "의사소통역량 / 글로벌역량",
+      "competency": "의사소통/글로벌",
       "group_min_count": 1
     },
     {
-      "competency": "공동체역량 / 리더십역량",
+      "competency": "공동체/리더십",
       "group_min_count": 1
     },
     {
-      "competency": "창의역량 / 융합역량",
+      "competency": "창의/융합",
       "group_min_count": 2
     },
     {
@@ -40,36 +40,32 @@
       "group_min_count": 0
     },
     {
-        "competency":"수리·물리·화학·생물",
-        "group_min_count":0
-    },
-    {
-      "competency": "자기개발ㆍ진로탐색",
+      "competency": "자기개발·진로탐색",
       "group_min_count": 0
     }
   ]
 },
 {  "type": "ge_elective",
-  "entry_year": [2023,2024, 2025],
+  "entry_year": [2023,2024,2025],
   "requirements": {
     "total_credit_min": 9,
     "christianity_credit_min": 4
   },
   "areas": [
     {
-      "competency": "기독교",
+      "competency": "기독교과목",
       "group_min_count": 0
     },
     {
-      "competency": "의사소통역량 / 글로벌역량",
+      "competency": "의사소통/글로벌",
       "group_min_count": 0
     },
     {
-      "competency": "공동체역량 / 리더십역량",
+      "competency": "공동체/리더십",
       "group_min_count": 0
     },
     {
-      "competency": "창의역량 / 융합역량",
+      "competency": "창의/융합",
       "group_min_count": 0
     },
     {
@@ -89,11 +85,7 @@
       "group_min_count": 1
     },
     {
-        "competency":"수리·물리·화학·생물",
-        "group_min_count": 1
-    },
-    {
-      "competency": "자기개발ㆍ진로탐색",
+      "competency": "자기개발·진로탐색",
       "group_min_count": 1
     }
   ]

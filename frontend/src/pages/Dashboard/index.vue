@@ -1,50 +1,41 @@
-<!-- src/pages/Dashboard/index.vue -->
 <template>
   <section class="dashboard">
-    <!-- 상단 헤더 -->
     <header class="dashboard__header">
       <div>
         <h1>대시보드</h1>
         <p class="dashboard__subtitle">
-          Graduation Checker의 주요 기능과 공지AI β를 한 화면에서 확인할 수 있습니다.
+          학업 관리의 모든 것. 주요기능과 AI 공지 검색를 한 곳에서
         </p>
       </div>
     </header>
 
-    <!-- 메인 2열 레이아웃 -->
     <div class="dashboard__layout">
-      <!-- 왼쪽: 기능 카드들 -->
       <section class="dashboard__cards">
-        <!-- 게시판 -->
         <article class="dashboard__card">
           <h2>게시판</h2>
           <p>
-            졸업 요건, 시간표, 전과/복수전공 등 정보를 서로 공유하는 공간입니다.
-            로그인 후 이용 가능합니다.
+            졸업 요건, 시간표, 전과/복수전공 등 정보를 서로 공유하는 공간
           </p>
-          <RouterLink to="/board" class="dashboard__card-button">바로가기</RouterLink>
+          <RouterLink to="/board" class="dashboard__card-button">입장하기</RouterLink>
         </article>
 
-        <!-- 시간표·졸업 관리 -->
         <article class="dashboard__card">
           <h2>시간표·졸업 관리</h2>
           <p>
-            내 시간표와 캘린더를 관리하고, 졸업 요건 충족 여부를 한눈에 확인할 수 있습니다.
+            내 시간표와 캘린더를 관리하고, 졸업 요건 충족 여부를 한눈에 확인하는 공간
           </p>
-          <RouterLink to="/schedule" class="dashboard__card-button">바로가기</RouterLink>
+          <RouterLink to="/schedule" class="dashboard__card-button">관리하기</RouterLink>
         </article>
 
-        <!-- 친구&그룹 -->
         <article class="dashboard__card">
           <h2>친구&그룹</h2>
           <p>
-            친구와 그룹을 추가해서 서로의 시간표를 비교하고, 공통 빈 시간이나 강좌를 확인할 수 있습니다.
+            친구와 그룹을 추가해서 서로의 시간표를 비교하고, 공통 빈 시간이나 강좌를 확인하는 공간
           </p>
           <RouterLink to="/friends" class="dashboard__card-button">바로가기</RouterLink>
         </article>
       </section>
 
-      <!-- 오른쪽: 공지AI β -->
       <section class="dashboard__rag">
         <RagPage />
       </section>
@@ -65,7 +56,7 @@ import RagPage from '../Rag/index.vue'
   width: 100%;
 }
 
-/* 헤더: 다른 탭이랑 맞춤 (22px / 14px) */
+/* 헤더 */
 .dashboard__header {
   display: flex;
   align-items: flex-start;
@@ -100,12 +91,17 @@ import RagPage from '../Rag/index.vue'
   gap: 12px;
 }
 
+/* 카드 스타일 수정됨: Flex Column 적용 */
 .dashboard__card {
   background: #ffffff;
   border-radius: 12px;
   border: 1px solid #eee;
   padding: 14px 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+  /* [핵심 수정] 내부 요소를 세로로 배치 */
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard__card h2 {
@@ -118,8 +114,13 @@ import RagPage from '../Rag/index.vue'
   margin: 0 0 10px;
   font-size: 0.85rem;
   color: #4b5563;
+  line-height: 1.4;
+  
+  /* 내용이 짧아도 버튼을 아래로 밀어내려면 아래 주석 해제 */
+  /* flex-grow: 1; */
 }
 
+/* 버튼 스타일 수정됨: 오른쪽 정렬 추가 */
 .dashboard__card-button {
   display: inline-flex;
   align-items: center;
@@ -132,6 +133,11 @@ import RagPage from '../Rag/index.vue'
   color: #111827;
   background: #f9fafb;
   transition: background 0.15s ease, border-color 0.15s ease;
+
+  /* [핵심 수정] 버튼을 오른쪽 끝으로 보냄 */
+  align-self: flex-end;
+  /* 버튼 위쪽에 여백 확보 (선택사항) */
+  margin-top: auto; 
 }
 
 .dashboard__card-button:hover {
@@ -145,7 +151,7 @@ import RagPage from '../Rag/index.vue'
   min-width: 0;
 }
 
-/* 반응형: 좁은 화면에서는 위/아래로 쌓기 */
+/* 반응형 */
 @media (max-width: 900px) {
   .dashboard__layout {
     flex-direction: column;

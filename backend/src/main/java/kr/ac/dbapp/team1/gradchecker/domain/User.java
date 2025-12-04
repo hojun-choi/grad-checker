@@ -37,12 +37,6 @@ public class User implements UserDetails {
     private String username;
 
     /**
-     * (선택) 이메일 – DB에 email 컬럼이 있을 때만 사용
-     */
-    @Column(name = "email", length = 120, nullable = true)
-    private String email;
-
-    /**
      * 학번 (users.student_id)
      */
     @Column(name = "student_id", nullable = false)

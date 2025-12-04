@@ -1,3 +1,4 @@
+// src/main/java/kr/ac/dbapp/team1/gradchecker/web/AuthController.java
 package kr.ac.dbapp.team1.gradchecker.web;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,34 +11,28 @@ import kr.ac.dbapp.team1.gradchecker.dto.RegisterRequest;
 import kr.ac.dbapp.team1.gradchecker.service.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
     private final AuthService authService;
-    private final AuthenticationManager authenticationManager;
 
-    public AuthController(
-            AuthService authService,
-            AuthenticationManager authenticationManager
-    ) {
+    public AuthController(AuthService authService) {
         this.authService = authService;
-        this.authenticationManager = authenticationManager;
     }
 
     /**
-     * [아이디 중복확인] GET /auth/check-login-id?loginId=...
+     * [아이디 중복확인] GET /api/auth/check-login-id?loginId=...
      *
      * 프론트에서 기대하는 응답:
      * { "available": true } 또는 { "available": false }
@@ -54,16 +49,7 @@ public class AuthController {
     }
 
     /**
-     * [회원가입] POST /auth/register
-     *
-     * 프론트에서 보내는 JSON 예시:
-     * {
-     *   "loginId": "hojun123",
-     *   "password": "pw123456",
-     *   "username": "최호준",
-     *   "studentId": 20203137,
-     *   "majorId": 1
-     * }
+     * [회원가입] POST /api/auth/register
      */
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
@@ -80,15 +66,13 @@ public class AuthController {
     }
 
     /**
-     * [로그인] POST /auth/login
+     * [로그인] POST /api/auth/login
      *
      * 프론트에서 보내는 JSON 예시:
      * {
      *   "loginId": "hojun123",
      *   "password": "pw123456"
      * }
-     *
-     * LoginRequest 는 loginId / password 필드를 가져야 한다.
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(
@@ -96,13 +80,12 @@ public class AuthController {
             HttpServletRequest httpRequest
     ) {
         try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            // 🔥 username 대신 loginId 로 인증
-                            request.loginId(),
-                            request.password()
-                    )
-            );
+            // 1) 아이디/비번 직접 검사
+            User user = authService.authenticate(request.loginId(), request.password());
+
+            // 2) 인증 객체 만들어 SecurityContext + 세션에 저장
+            Authentication authentication =
+                    new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
 
             SecurityContext context = SecurityContextHolder.createEmptyContext();
             context.setAuthentication(authentication);
@@ -114,17 +97,23 @@ public class AuthController {
                     context
             );
 
+            // 3) 응답 DTO 생성
             AuthResponse response = authService.generateAuthResponse(authentication);
             return ResponseEntity.ok(response);
 
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
+            // 아이디/비번 틀린 경우
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "아이디 또는 비밀번호가 올바르지 않습니다."));
+        } catch (Exception e) {
+            // 그 외 예외는 500
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "로그인 처리 중 오류가 발생했습니다."));
         }
     }
 
     /**
-     * [현재 사용자 조회] GET /auth/me
+     * [현재 사용자 조회] GET /api/auth/me
      */
     @GetMapping("/me")
     public ResponseEntity<?> me(@AuthenticationPrincipal User user) {
@@ -139,10 +128,11 @@ public class AuthController {
     }
 
     /**
-     * [로그아웃] POST /auth/logout
+     * [로그아웃] POST /api/auth/logout
      */
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
+        // 세션/컨텍스트 정리는 Spring Security 쪽 필터가 처리하므로 여기서는 204만 응답
         return ResponseEntity.noContent().build();
     }
 }

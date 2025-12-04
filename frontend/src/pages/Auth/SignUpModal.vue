@@ -55,13 +55,13 @@
           />
         </label>
 
-        <!-- 이름 (username) -->
+        <!-- 닉네임 (username) -->
         <label>
-          이름
+          닉네임
           <input
             v-model.trim="name"
             required
-            placeholder="실제 이름"
+            placeholder="사용할 이름"
           />
         </label>
 
@@ -75,7 +75,7 @@
             inputmode="numeric"
             min="0"
             step="1"
-            placeholder="예: 20203137"
+            placeholder="예: 20221234"
           />
         </label>
 
@@ -422,7 +422,7 @@ async function onSubmit() {
 
     // 2) 자동 로그인 (loginId 기준)
     await api.post('/auth/login', {
-      loginId: loginId.value.trim(),
+      username: loginId.value.trim(),
       password: password.value,
     })
 

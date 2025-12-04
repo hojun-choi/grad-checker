@@ -4,9 +4,9 @@
     <!-- 상단 헤더 -->
     <header class="rag__header">
       <div>
-        <h2>공지AI β</h2>
+        <h2>공지 검색AI</h2>
         <p class="rag__subtitle">
-          학교·학과 공지와 학사 규정을 한 번에 찾아주는 실험용(베타) 기능입니다.
+          질문에 맞춰 흩어진 학교·학과 공지를 AI가 분석하여 한 번에 찾아주는 검색 기능
         </p>
       </div>
     </header>
@@ -310,7 +310,7 @@ const departmentKeywordMap = {
 // 예시 질문들
 const suggestions = [
   '공학교육인증 포기 신청 방법',
-  '소프트웨어학부 졸업요건',
+  '소프트웨어학부 전과 신청',
   '복수전공 신청 방법',
   '휴학 절차',
 ]

@@ -181,14 +181,6 @@
                     {{ m }}
                   </option>
                 </select>
-
-                <select v-model="selectedGrade" class="filter-select">
-                  <option value="">학년 전체</option>
-                  <option value="1">1학년</option>
-                  <option value="2">2학년</option>
-                  <option value="3">3학년</option>
-                  <option value="4">4학년</option>
-                </select>
               </div>
 
               <!-- 교선 영역 필터 (교선인 경우에만) -->
@@ -237,7 +229,7 @@
               <div class="search-input-wrap">
                 <input
                   type="text"
-                  v-model="searchKeyword"
+                  v-model="listFilter"
                   placeholder="강의명, 교수님 검색"
                   @keyup.enter="searchClasses"
                 />
@@ -270,15 +262,16 @@
 
                 <!-- 결과 리스트 -->
                 <div v-else class="search-list">
-                  <div class="search-list__summary">
-                    총 {{ lectures.length }}개의 강의가 불러와졌습니다.
-                  </div>
-                  <ul class="search-list__items">
-                    <li
-                      v-for="lec in lectures"
-                      :key="lec.id + '-' + (lec.meetingDay || '') + '-' + (lec.startTime || '')"
-                      class="search-item"
-                    >
+                <div class="search-list__summary">
+                  총 {{ lectures.length }}개 불러옴 /
+                  필터 적용: {{ filteredLectures.length }}개
+                </div>
+                <ul class="search-list__items">
+                  <li
+                    v-for="lec in filteredLectures"
+                    :key="lec.id + '-' + (lec.meetingDay || '') + '-' + (lec.startTime || '')"
+                    class="search-item"
+                  >
                       <div class="search-item__info">
                         <div class="search-item__title">
                           {{ lec.courseTitle }}
@@ -288,24 +281,19 @@
                           <span>{{ lec.instructorName }}</span>
 
                           <!-- 여러 시간·요일을 한 항목에 합쳐서 표시 -->
-                          <span v-if="lec.slots && lec.slots.length">
-                            ·
-                            <span
+                          <div
+                            v-if="lec.slots && lec.slots.length"
+                            class="search-item__slots"
+                          >
+                            <div
                               v-for="(slot, idx) in lec.slots"
                               :key="idx"
+                              class="search-item__slot"
                             >
-                              <span v-if="idx > 0"> / </span>
-                              {{ slot.meetingDay }}
-                              {{ slot.startTime }}~{{ slot.endTime }}
-                            </span>
-                          </span>
-
-                          <!-- 강의실은 대표 한 개만 (첫 번째 슬롯 기준) -->
-                          <span
-                            v-if="lec.slots && lec.slots.length && lec.slots[0].buildingRoom"
-                          >
-                            · {{ lec.slots[0].buildingRoom }}
-                          </span>
+                              <span>{{ slot.meetingDay }} {{ slot.startTime }}~{{ slot.endTime }}</span>
+                              <span v-if="slot.buildingRoom"> · {{ slot.buildingRoom }}</span>
+                            </div>
+                          </div>
 
                           <span>
                             · {{ lec.courseCredits }}학점
@@ -315,10 +303,16 @@
 
                       <button
                         class="add-btn"
-                        :disabled="!selectedTimetableId || addingLecture"
+                        :disabled="!selectedTimetableId || addingLecture || isLectureAlreadyInTimetable(lec)"
                         @click="addLectureToTimetable(lec)"
                       >
-                        {{ selectedTimetableId ? '시간표에 추가' : '시간표 선택 필요' }}
+                        {{
+                          !selectedTimetableId
+                            ? '시간표 선택 필요'
+                            : isLectureAlreadyInTimetable(lec)
+                              ? '이미 추가됨'
+                              : '시간표에 추가'
+                        }}
                       </button>
                     </li>
                   </ul>
@@ -388,6 +382,23 @@ const tabs = [
   { value: 'graduation', label: '졸업 요건' },
 ]
 const activeTab = ref('timetable')
+const listFilter = ref('')    // ← 검색 결과 로컬 필터용
+// 같은 과목(코드/분반)이 이미 시간표에 있는지 확인
+function isLectureAlreadyInTimetable(lec) {
+  const current = currentTimetableData.value
+  if (!current || !Array.isArray(current.classes)) return false
+
+  const lecCourse = lec.courseCode || lec.course_code
+  const lecSection = lec.sectionNo ?? lec.section_no ?? null
+
+  return current.classes.some((cls) => {
+    const clsCourse = cls.courseCode || cls.course_code
+    const clsSection = cls.sectionNo ?? cls.section_no ?? null
+
+    // 필요하면 여기 비교 조건을 너네 백엔드 필드명에 맞춰 조정해줘
+    return clsCourse === lecCourse && clsSection === lecSection
+  })
+}
 
 /* =========================================
    시간표(Timetable) 관련 로직
@@ -406,7 +417,6 @@ const loadingTimetableDetail = ref(false)
 // 2. 검색 및 필터 관련 상태
 const categories = ['전공', '교필', '교선', '채플', '융전', '연전', '교직']
 const searchCategory = ref('전공')
-const searchKeyword = ref('')
 
 // 전공(학부전공) 데이터 상태
 const majors = ref([])
@@ -422,7 +432,6 @@ const loadingLinkedMajors = ref(false)
 const selectedCollege = ref('')
 const selectedFaculty = ref('')
 const selectedMajorName = ref('')
-const selectedGrade = ref('')
 
 // 교선(교양 선택) 도메인 필터
 const electiveDomainOptions = [
@@ -458,6 +467,18 @@ const getTtMajor = (m) =>
   m?.ttMajor ?? m?.tt_major ?? m?.majorName ?? m?.major_name ?? ''
 
 /* ---------- 전공(학부전공) 필터용 computed ---------- */
+const filteredLectures = computed(() => {
+  const base = lectures.value || []
+  const kw = listFilter.value.trim().toLowerCase()
+  if (!kw) return base
+
+  return base.filter((lec) => {
+    const title = (lec.courseTitle || '').toLowerCase()
+    const prof = (lec.instructorName || '').toLowerCase()
+    return title.includes(kw) || prof.includes(kw)
+  })
+})
+
 const collegeOptions = computed(() => {
   const set = new Set()
   for (const m of majors.value) {
@@ -510,7 +531,6 @@ function changeCategory(cat) {
     selectedCollege.value = ''
     selectedFaculty.value = ''
     selectedMajorName.value = ''
-    selectedGrade.value = ''
   }
   if (cat !== '교선') {
     selectedElectiveDomain.value = ''
@@ -521,6 +541,8 @@ function changeCategory(cat) {
   if (cat !== '연전') {
     selectedLinkedMajorTt.value = ''
   }
+
+  listFilter.value = ''  // 🔴 카테고리 바뀔 때 로컬 필터 초기화
 }
 
 // "['20,'21~'22]공동체/리더십,숭실품성-자기계발과진로탐색"
@@ -857,10 +879,6 @@ async function searchClasses() {
         return
     }
 
-    if (searchKeyword.value?.trim()) {
-      params.keyword = searchKeyword.value.trim()
-    }
-
     const { data } = await api.get(url, { params })
 
     const raw = Array.isArray(data) ? data : []
@@ -913,6 +931,12 @@ function groupLecturesByCourse(rows) {
 async function addLectureToTimetable(lec) {
   if (!selectedTimetableId.value) {
     toast.warning('먼저 시간표를 선택해 주세요.')
+    return
+  }
+
+  // 🔴 이미 시간표에 있는 과목이면 막기
+  if (isLectureAlreadyInTimetable(lec)) {
+    toast.info('이미 이 시간표에 추가된 강의입니다.')
     return
   }
 
@@ -1122,7 +1146,6 @@ onMounted(() => {
   color: #fbbf24;
 }
 
-/* 2. 레이아웃 (그리드 : 사이드바 비율 조정) */
 .tt-layout {
   display: flex;
   gap: 24px;
@@ -1130,14 +1153,17 @@ onMounted(() => {
   height: 100%;
 }
 
-/* 왼쪽: 그리드 영역 (Flex 2) */
+/* 왼쪽: 그리드 영역 (2/3 고정 + sticky) */
 .tt-grid-container {
-  flex: 2;
+  flex: 0 0 66%;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 80px; /* 헤더 높이에 맞게 조금 조절해도 됨 */
+  max-height: calc(100vh - 120px);
 }
 
 .tt-grid-header {
@@ -1257,12 +1283,14 @@ onMounted(() => {
 
 /* 오른쪽: 사이드바 (수업 추가 - Flex 1) */
 .tt-sidebar {
-  flex: 1;
+  flex: 0 0 34%;
   min-width: 340px;
   border-left: 1px solid #eee;
   padding-left: 24px;
   display: flex;
   flex-direction: column;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
 }
 
 .search-box h3 {
@@ -1400,13 +1428,33 @@ onMounted(() => {
 
 .search-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* ← 기존 center라면 이렇게 변경 */
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 10px;
+  padding: 10px 12px;      /* 살짝 키움 */
   border-radius: 8px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
+}
+
+.search-item__meta {
+  font-size: 12px;
+  color: #4b5563;
+  display: flex;
+  flex-direction: column; /* 여러 줄로 정렬 */
+  gap: 4px;
+}
+
+.search-item__slots {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.search-item__slot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .search-item__info {

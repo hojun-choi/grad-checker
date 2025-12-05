@@ -15,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
-import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -33,6 +32,9 @@ public class SecurityConfig {
         this.userDetailsService = userDetailsService;
     }
 
+    // ==========================
+    // Password / Auth Provider
+    // ==========================
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -53,6 +55,9 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
+    // ==========================
+    // Security Filter Chain
+    // ==========================
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
@@ -63,16 +68,33 @@ public class SecurityConfig {
                 // CORS 설정
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
+                // CSRF 설정 (쿠키 기반)
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(tokenRepository)
                         .csrfTokenRequestHandler(requestHandler)
+                        // 정적 리소스, index.html 등은 CSRF 대상에서 제외
+                        .ignoringRequestMatchers(
+                                "/", "/index.html",
+                                "/assets/**",
+                                "/favicon.ico",
+                                "/error"
+                        )
                 )
 
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
 
-                // 권한 설정: 모든 요청을 허용
+                // 권한 설정
                 .authorizeHttpRequests(auth -> auth
+                        // 프론트 엔트리 + 정적 파일 + 공용 API 들은 전부 허용
+                        .requestMatchers(
+                                "/", "/index.html",
+                                "/assets/**",
+                                "/favicon.ico",
+                                "/error",
+                                "/api/auth/**"
+                        ).permitAll()
+                        // 나머지도 지금은 전부 허용 (추후 인증 붙이면 여기 수정)
                         .anyRequest().permitAll()
                 )
 
@@ -90,15 +112,24 @@ public class SecurityConfig {
 
                 .authenticationProvider(authenticationProvider());
 
-
         return http.build();
     }
 
+    // ==========================
+    // CORS 설정
+    // ==========================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173","http://127.0.0.1:5173"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-XSRF-TOKEN", "Accept"));
+
+        // 로컬 Vite + ngrok 도메인들 허용
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "https://*.ngrok-free.app",
+                "https://*.ngrok-free.dev"
+        ));
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
